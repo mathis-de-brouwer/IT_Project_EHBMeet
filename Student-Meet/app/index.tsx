@@ -8,6 +8,11 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
+  const handleLogin = () => {
+    // Simuleer inloggen
+    router.push('/home');
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Login</Text>
@@ -26,7 +31,7 @@ export default function LoginScreen() {
         onChangeText={setPassword}
         secureTextEntry
       />
-      <TouchableOpacity style={styles.buttonPrimary}>
+      <TouchableOpacity style={styles.buttonPrimary} onPress={handleLogin}>
         <Text style={styles.buttonText}>login</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.buttonSecondary} onPress={() => router.push('/register')}>
