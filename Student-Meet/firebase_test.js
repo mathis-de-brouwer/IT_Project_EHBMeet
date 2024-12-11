@@ -1,98 +1,89 @@
-import { db, dbRealtime } from './firebase_backup.js';
-import {collection, addDoc, getDocs, updateDoc, doc, query, where} from 'firebase/firestore';
+import { db } from './firebase_backup.js';
+import { collection, addDoc, getDocs, updateDoc, doc, query, where } from 'firebase/firestore';
 
-async function addData(){
-    try{
-        const docRef = await addDoc(collection(db, "Users"),{
-            User_ID: (db,"Users"),
-            Blacklisted:false,
-            Description: " this is a test",
-            First_Name: "Adolf ",
-            Second_name:"De Ridder",
-            Discord_name: "Alber Hein",
-            Password: "ejrnfekjrfnek",
-            Profile_Picture: "picture ", 
-            Steam_name: "AdolfH",
-            email: "adolf.Deridder@student.ehb.be"
-        });
-
-        const docRef1 = await addDoc(collection(db,"Event"),{
-            Categoty_id: "1",
-            Date: "11 September 2001",
-            Description: " This is an event only for pro pilots" ,
-            Event_Title:"the towers",
-            Event_picture: "data:",
-            Location: "Brussels, Metro system",
-            Max_Participants: "7",
-            Phone_Number: "+23 469 515451", 
-            User_ID: "15"
-            
-        });
-
-    console.log("Document written with ID: ", docRef.id);
-        } catch (e) {
-            console.error("Error adding document: ", e);
-        }        
-
-}
-
-
-// change data in Firebase: 
-async function editData(){
-    const userRef = doc(db,'Users','I0aXmPLIp0vozT4z6cZR')
-    try{
-        await updateDoc(userRef,{
-            Description: " NOOOOOOO"
-        });
-        console.log("succesfully updated");
-    } catch(e){
-        console.error("Error occured: " + e);
-    }
-}
-
-
-
-async function addUserIfNotExists(User_ID) {
+// Function to add a new user if User_ID doesn't exist
+async function addUserIfNotExists(UserData) {
+    const { User_ID, ...restData } = UserData;
     const usersCollectionRef = collection(db, 'Users');
 
+    // Check if the User_ID already exists
+    // Ensure Firestore has an index on the 'User_ID' field to optimize this query
     const q = query(usersCollectionRef, where('User_ID', '==', User_ID));
-
-    // Get documents that match the query
     const querySnapshot = await getDocs(q);
 
-    // If there are no documents, it means the user doesn't exist and we can add the new user
     if (querySnapshot.empty) {
         try {
-            // Add the new user to the "Users" collection
             const docRef = await addDoc(usersCollectionRef, {
-                User_ID: User_ID,
-                Description: description
+                User_ID, // User-provided ID for reference
+                ...restData
             });
-            console.log("User added with ID: ", docRef.id);
+            console.log("User added with Document ID: ", docRef.id);
         } catch (e) {
             console.error("Error adding user: ", e);
         }
     } else {
-        // If there are matching documents, inform the user that the username already exists
-        console.log("User with this name already exists!");
+        console.log("User with this User_ID already exists!");
     }
 }
-    
-async function getData() {
-    const querySnapshot = await getDocs(collection(db, "Users"));
-    querySnapshot.forEach((doc) => {
-      console.log(doc.id, " => ", doc.data()); // Logs the document ID and data
-    });
 
-    const querySnapshot1 = await getDocs(collection(db, "Event"));
-    querySnapshot1.forEach((doc) => {
-        console.log(doc.id, " => ", doc.data()); // Logs the document ID and data
+// Function to get all data from 'Users' and 'Event' collections
+async function getData() {
+    try {
+        const usersSnapshot = await getDocs(collection(db, "Users"));
+        usersSnapshot.forEach((docSnapshot) => {
+            const userData = docSnapshot.data(); // Fetch data using the .data() method
+            console.log(docSnapshot.id, " => ", userData);
         });
 
+        const eventsSnapshot = await getDocs(collection(db, "Event"));
+        eventsSnapshot.forEach((docSnapshot) => {
+            const eventData = docSnapshot.data();
+            console.log(docSnapshot.id, " => ", eventData);
+        });
+    } catch (e) {
+        console.error("Error fetching data: ", e);
+    }
 }
 
+// Function to edit user data
+async function editData(userId, updatedData) {
+    if (!userId || typeof userId !== 'string') {
+        console.error("Invalid userDocumentId provided. It must be a non-empty string.");
+        return;
+    }
+    const userRef = doc(db, 'Users', userId);
+    try {
+        const docSnapshot = await getDocs(userRef);
+        if (!docSnapshot.exists()) {
+            console.error("No user found with the provided ID.");
+            return;
+        }
+        await updateDoc(userRef, updatedData);
+        console.log("Successfully updated");
+    } catch (e) {
+        console.error("Error updating document: ", e);
+    }
+}
 
-addData();
-getData();
-editData();
+// Example
+async function runExamples() {
+    // Add new user (ensure User_ID is unique)
+    await addUserIfNotExists({
+        User_ID: "4",
+        Blacklisted: true,
+        Description: "This is a test",
+        First_Name: "Rudiger-Francis verstappen",
+        Second_name: "yamaaaaa",
+        Discord_name: "Alber Hein",
+        Password: "examplePassword",
+        Profile_Picture: "https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.reddit.com%2Fr%2FCursed_Images%2Fcomments%2Fsr1b5a%2Fcursed_toad%2F&psig=AOvVaw3AdJAVtmNIaRbT1r2xDc46&ust=1734015962609000&source=images&cd=vfe&opi=89978449&ved=0CBQQjRxqFwoTCIiryP3-n4oDFQAAAAAdAAAAABAE",
+        Steam_name: "AdolfH",
+        email: "adolf.Deridder@student.ehb.be"
+    });
+    await getData();
+    await editData('userDocumentId', {
+        Description: "Updated description"
+    });
+}
 
+runExamples();
