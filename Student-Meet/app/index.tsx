@@ -29,8 +29,14 @@ export default function LoginScreen() {
         placeholderTextColor={Colors.placeholder}
         value={password}
         onChangeText={setPassword}
+<<<<<<< Updated upstream
         secureTextEntry/>
       <TouchableOpacity style={styles.buttonPrimary} onPress={() => router.push('/home')}>
+=======
+        secureTextEntry
+
+      <TouchableOpacity> style={styles.buttonPrimary} onPress={() => router.push('/home')}>
+>>>>>>> Stashed changes
 
 
         <Text style={styles.buttonText}>login</Text>
