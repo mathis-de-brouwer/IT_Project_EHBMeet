@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'reac
 import Colors from '../../constants/Colors';
 import { useRouter } from 'expo-router';
 import { db } from '../../firebase_backup.js';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, setDoc, getDoc } from 'firebase/firestore';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -27,9 +27,46 @@ export default function RegisterScreen() {
       return;
     }
 
+    // Add email validation for multiple domains
+    const validDomains = ['@ehb.be', '@student.ehb.be'];
+    const emailLower = userData.email.toLowerCase();
+    const isValidDomain = validDomains.some(domain => emailLower.endsWith(domain));
+
+    if (!isValidDomain) {
+      Alert.alert('Error', 'Please use your EHB email address (@ehb.be or @student.ehb.be)');
+      return;
+    }
+
     try {
-      const userDocRef = await addDoc(collection(db, "Users"), userData);
-      console.log("User registered with ID: ", userDocRef.id);
+      // Generate a unique numeric User_ID (timestamp + random number)
+      const timestamp = Date.now();
+      const randomNum = Math.floor(Math.random() * 1000);
+      const uniqueUserId = `${timestamp}${randomNum}`;
+
+      // Create document ID from name
+      const customDocId = `${userData.First_Name.toLowerCase()}.${userData.Second_name.toLowerCase()}`
+        .replace(/\s+/g, '')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9.]/g, '');
+
+      // Check if document with this ID already exists
+      const docRef = doc(db, "Users", customDocId);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        Alert.alert('Error', 'A user with this name combination already exists');
+        return;
+      }
+
+      // Create user document with custom doc ID and unique User_ID
+      const { User_ID, ...userDataWithoutID } = userData;
+      await setDoc(docRef, {
+        ...userDataWithoutID,
+        User_ID: uniqueUserId
+      });
+
+      console.log("User registered with Doc ID: ", customDocId);
+      console.log("User_ID: ", uniqueUserId);
       Alert.alert('Success', 'Registration successful!', [
         { text: 'OK', onPress: () => router.push('/login') }
       ]);
