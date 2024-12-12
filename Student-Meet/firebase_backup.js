@@ -1,6 +1,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
+import { getFirestore } from "firebase/firestore";  
+import { getDatabase } from "firebase/database";
 
 // TODO: Add SDKs for Firebase products that you want to use
 // https://firebase.google.com/docs/web/setup#available-libraries
@@ -14,9 +15,13 @@ const firebaseConfig = {
   storageBucket: "studentmeet-9e802.firebasestorage.app",
   messagingSenderId: "134322719793",
   appId: "1:134322719793:web:3cf5d31165ec592e2a9910",
-  measurementId: "G-GTB3J91G3H"
+  measurementId: "G-GTB3J91G3H",
+  databaseURL: "https://studentmeet-9e802-default-rtdb.europe-west1.firebasedatabase.app/"
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+const db = getFirestore(app);
+const dbRealtime = getDatabase(app);
+
+export {db, dbRealtime};
