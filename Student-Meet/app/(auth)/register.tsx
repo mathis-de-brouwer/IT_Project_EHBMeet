@@ -23,10 +23,53 @@ export default function RegisterScreen() {
 
   const [confirmPassword, setConfirmPassword] = useState('');
 
+  const [passwordStrength, setPasswordStrength] = useState({
+    length: false,
+    hasUpper: false,
+    hasLower: false,
+    hasNumber: false,
+    hasSpecial: false
+  });
+
+  const checkPasswordStrength = (password: string) => {
+    setPasswordStrength({
+      length: password.length >= 8,
+      hasUpper: /[A-Z]/.test(password),
+      hasLower: /[a-z]/.test(password),
+      hasNumber: /[0-9]/.test(password),
+      hasSpecial: /[@$!%*?&]/.test(password)
+    });
+  };
+
   const handleRegister = async () => {
     // Validate required fields
-    if (!userData.First_Name || !userData.Second_name || !userData.email || !userData.Password) {
+    if (!userData.First_Name || !userData.Second_name || !userData.email || !userData.Password || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
+
+    // Password validation
+    if (userData.Password.length < 8) {
+      Alert.alert('Error', 'Password must be at least 8 characters long');
+      return;
+    }
+
+    if (userData.Password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+
+    // Password strength validation
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordRegex.test(userData.Password)) {
+      Alert.alert('Error', 
+        'Password must contain at least:\n' +
+        '- 8 characters\n' +
+        '- One uppercase letter\n' +
+        '- One lowercase letter\n' +
+        '- One number\n' +
+        '- One special character'
+      );
       return;
     }
 
@@ -39,12 +82,6 @@ export default function RegisterScreen() {
       Alert.alert('Error', 'Please use your EHB email address');
       return;
     }
-
-    if (userData.Password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
-      return;
-    }
-
     try {
       // Check if email already exists
       const usersRef = collection(db, "Users");
@@ -131,9 +168,44 @@ export default function RegisterScreen() {
         placeholder="Password *"
         placeholderTextColor={Colors.placeholder}
         value={userData.Password}
-        onChangeText={(text) => setUserData({...userData, Password: text})}
+        onChangeText={(text) => {
+          setUserData({...userData, Password: text});
+          checkPasswordStrength(text);
+        }}
         secureTextEntry
       />
+      <View style={styles.passwordChecklist}>
+        <Text style={[
+          styles.requirementText,
+          { color: passwordStrength.length ? Colors.success : Colors.error }
+        ]}>
+          • Minimum 8 characters {passwordStrength.length ? '✓' : ''}
+        </Text>
+        <Text style={[
+          styles.requirementText,
+          { color: passwordStrength.hasUpper ? Colors.success : Colors.error }
+        ]}>
+          • At least one uppercase letter {passwordStrength.hasUpper ? '✓' : ''}
+        </Text>
+        <Text style={[
+          styles.requirementText,
+          { color: passwordStrength.hasLower ? Colors.success : Colors.error }
+        ]}>
+          • At least one lowercase letter {passwordStrength.hasLower ? '✓' : ''}
+        </Text>
+        <Text style={[
+          styles.requirementText,
+          { color: passwordStrength.hasNumber ? Colors.success : Colors.error }
+        ]}>
+          • At least one number {passwordStrength.hasNumber ? '✓' : ''}
+        </Text>
+        <Text style={[
+          styles.requirementText,
+          { color: passwordStrength.hasSpecial ? Colors.success : Colors.error }
+        ]}>
+          • At least one special character (@$!%*?&) {passwordStrength.hasSpecial ? '✓' : ''}
+        </Text>
+      </View>
       <TextInput
         style={styles.input}
         placeholder="Confirm Password *"
@@ -202,6 +274,16 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  passwordChecklist: {
+    width: '90%',
+    marginBottom: 15,
+    paddingHorizontal: 15,
+  },
+  requirementText: {
+    fontSize: 12,
+    fontFamily: 'Poppins',
+    marginBottom: 2,
   },
 });
 
