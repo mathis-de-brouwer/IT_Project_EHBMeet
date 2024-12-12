@@ -31,6 +31,8 @@ export default function RegisterScreen() {
     hasSpecial: false
   });
 
+  const [isRegistering, setIsRegistering] = useState(false);
+
   const checkPasswordStrength = (password: string) => {
     setPasswordStrength({
       length: password.length >= 8,
@@ -42,47 +44,56 @@ export default function RegisterScreen() {
   };
 
   const handleRegister = async () => {
-    // Validate required fields
-    if (!userData.First_Name || !userData.Second_name || !userData.email || !userData.Password || !confirmPassword) {
-      Alert.alert('Error', 'Please fill in all required fields');
-      return;
-    }
+    if (isRegistering) return; // Prevent multiple submissions
+    setIsRegistering(true);
 
-    // Password validation
-    if (userData.Password.length < 8) {
-      Alert.alert('Error', 'Password must be at least 8 characters long');
-      return;
-    }
-
-    if (userData.Password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
-      return;
-    }
-
-    // Password strength validation
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-    if (!passwordRegex.test(userData.Password)) {
-      Alert.alert('Error', 
-        'Password must contain at least:\n' +
-        '- 8 characters\n' +
-        '- One uppercase letter\n' +
-        '- One lowercase letter\n' +
-        '- One number\n' +
-        '- One special character'
-      );
-      return;
-    }
-
-    // Add email validation for multiple domains
-    const validDomains = ['@ehb.be', '@student.ehb.be'];
-    const emailLower = userData.email.toLowerCase();
-    const isValidDomain = validDomains.some(domain => emailLower.endsWith(domain));
-
-    if (!isValidDomain) {
-      Alert.alert('Error', 'Please use your EHB email address');
-      return;
-    }
     try {
+      // Validate required fields
+      if (!userData.First_Name || !userData.Second_name || !userData.email || !userData.Password || !confirmPassword) {
+        Alert.alert('Error', 'Please fill in all required fields');
+        setIsRegistering(false);
+        return;
+      }
+
+      // Password validation
+      if (userData.Password.length < 8) {
+        Alert.alert('Error', 'Password must be at least 8 characters long');
+        setIsRegistering(false);
+        return;
+      }
+
+      if (userData.Password !== confirmPassword) {
+        Alert.alert('Error', 'Passwords do not match');
+        setIsRegistering(false);
+        return;
+      }
+
+      // Password strength validation
+      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+      if (!passwordRegex.test(userData.Password)) {
+        Alert.alert('Error', 
+          'Password must contain at least:\n' +
+          '- 8 characters\n' +
+          '- One uppercase letter\n' +
+          '- One lowercase letter\n' +
+          '- One number\n' +
+          '- One special character'
+        );
+        setIsRegistering(false);
+        return;
+      }
+
+      // Add email validation for multiple domains
+      const validDomains = ['@ehb.be', '@student.ehb.be'];
+      const emailLower = userData.email.toLowerCase();
+      const isValidDomain = validDomains.some(domain => emailLower.endsWith(domain));
+
+      if (!isValidDomain) {
+        Alert.alert('Error', 'Please use your EHB email address');
+        setIsRegistering(false);
+        return;
+      }
+
       // Check if email already exists
       const usersRef = collection(db, "Users");
       const q = query(usersRef, where("email", "==", userData.email.toLowerCase()));
@@ -90,6 +101,7 @@ export default function RegisterScreen() {
 
       if (!querySnapshot.empty) {
         Alert.alert('Error', 'An account with this email already exists');
+        setIsRegistering(false);
         return;
       }
 
@@ -113,14 +125,15 @@ export default function RegisterScreen() {
 
       if (docSnap.exists()) {
         Alert.alert('Error', 'A user with this name combination already exists');
+        setIsRegistering(false);
         return;
       }
 
       // Create user document with hashed password
       const { User_ID, Password, ...userDataWithoutSensitive } = userData;
-      await setDoc(docRef, {
+      const userDocRef = await setDoc(docRef, {
         ...userDataWithoutSensitive,
-        Password: hashedPassword, // Store hashed password instead of plain text
+        Password: hashedPassword,
         email: userData.email.toLowerCase(),
         User_ID: uniqueUserId
       });
@@ -132,6 +145,8 @@ export default function RegisterScreen() {
     } catch (error) {
       console.error("Error registering user: ", error);
       Alert.alert('Error', 'Registration failed. Please try again.');
+    } finally {
+      setIsRegistering(false);
     }
   };
 
@@ -214,8 +229,17 @@ export default function RegisterScreen() {
         onChangeText={(text) => setConfirmPassword(text)}
         secureTextEntry
       />
-      <TouchableOpacity style={styles.buttonPrimary} onPress={handleRegister}>
-        <Text style={styles.buttonText}>Register</Text>
+      <TouchableOpacity 
+        style={[
+          styles.buttonPrimary,
+          isRegistering && styles.buttonDisabled
+        ]} 
+        onPress={handleRegister}
+        disabled={isRegistering}
+      >
+        <Text style={styles.buttonText}>
+          {isRegistering ? 'Registering...' : 'Register'}
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -284,6 +308,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'Poppins',
     marginBottom: 2,
+  },
+  buttonDisabled: {
+    backgroundColor: Colors.placeholder,
+    opacity: 0.7,
   },
 });
 
