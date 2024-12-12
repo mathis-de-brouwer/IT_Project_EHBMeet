@@ -29,9 +29,8 @@ export default function LoginScreen() {
         placeholderTextColor={Colors.placeholder}
         value={password}
         onChangeText={setPassword}
-        secureTextEntry
-      />
-      <TouchableOpacity style={styles.buttonPrimary} onPress={handleLogin}>
+        secureTextEntry/>
+      <TouchableOpacity style={styles.buttonPrimary} onPress={() => router.push('/home')}>
         <Text style={styles.buttonText}>login</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.buttonSecondary} onPress={() => router.push('/register')}>
