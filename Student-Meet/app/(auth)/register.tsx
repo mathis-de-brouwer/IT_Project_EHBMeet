@@ -90,7 +90,7 @@ export default function RegisterScreen() {
 
       console.log("User registered with Doc ID: ", customDocId);
       Alert.alert('Success', 'Registration successful!', [
-        { text: 'OK', onPress: () => router.push('/login') }
+        { text: 'OK', onPress: () => router.push('/(auth)/login') }
       ]);
     } catch (error) {
       console.error("Error registering user: ", error);
