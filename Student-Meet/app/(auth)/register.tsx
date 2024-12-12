@@ -21,6 +21,8 @@ export default function RegisterScreen() {
     Steam_name: '',
   });
 
+  const [confirmPassword, setConfirmPassword] = useState('');
+
   const handleRegister = async () => {
     // Validate required fields
     if (!userData.First_Name || !userData.Second_name || !userData.email || !userData.Password) {
@@ -35,6 +37,11 @@ export default function RegisterScreen() {
 
     if (!isValidDomain) {
       Alert.alert('Error', 'Please use your EHB email address');
+      return;
+    }
+
+    if (userData.Password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
       return;
     }
 
@@ -93,6 +100,9 @@ export default function RegisterScreen() {
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity style={styles.returnButton} onPress={() => router.back()}>
+        <Text style={styles.returnButtonText}>← Back</Text>
+      </TouchableOpacity>
       <Text style={styles.title}>Register</Text>
       <TextInput
         style={styles.input}
@@ -122,6 +132,14 @@ export default function RegisterScreen() {
         placeholderTextColor={Colors.placeholder}
         value={userData.Password}
         onChangeText={(text) => setUserData({...userData, Password: text})}
+        secureTextEntry
+      />
+      <TextInput
+        style={styles.input}
+        placeholder="Confirm Password *"
+        placeholderTextColor={Colors.placeholder}
+        value={confirmPassword}
+        onChangeText={(text) => setConfirmPassword(text)}
         secureTextEntry
       />
       <TouchableOpacity style={styles.buttonPrimary} onPress={handleRegister}>
@@ -171,6 +189,19 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     fontFamily: 'Poppins',
+  },
+  returnButton: {
+    position: 'absolute',
+    top: 40,
+    left: 20,
+    padding: 10,
+    borderRadius: 5,
+    backgroundColor: Colors.secondary,
+  },
+  returnButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
