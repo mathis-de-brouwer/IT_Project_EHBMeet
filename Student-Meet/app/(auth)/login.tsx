@@ -1,14 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import Colors from '../../constants/Colors';
 import { useRouter } from 'expo-router';
 import { db } from '../../firebase_backup.js';
 import { collection, query, where, getDocs } from 'firebase/firestore';
+import CryptoJS from 'crypto-js';
+import { AuthContext } from '../_layout';
+import { UserData } from '../../app/types/user';
 
 export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const { signIn } = useContext(AuthContext);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -16,9 +20,19 @@ export default function LoginScreen() {
       return;
     }
 
+    // Validate email domain
+    const validDomains = ['@ehb.be', '@student.ehb.be'];
+    const emailLower = email.toLowerCase();
+    const isValidDomain = validDomains.some(domain => emailLower.endsWith(domain));
+
+    if (!isValidDomain) {
+      Alert.alert('Error', 'Please use your EHB email address');
+      return;
+    }
+
     try {
       const usersRef = collection(db, "Users");
-      const q = query(usersRef, where("email", "==", email));
+      const q = query(usersRef, where("email", "==", emailLower));
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
@@ -29,10 +43,14 @@ export default function LoginScreen() {
       const userDoc = querySnapshot.docs[0];
       const userData = userDoc.data();
 
-      if (userData.Password === password) {
-        // Store user data locally if needed
+      // Hash the entered password and compare with stored hash
+      const hashedPassword = CryptoJS.SHA256(password).toString();
+
+      if (userData.Password === hashedPassword) {
+        // Cast the Firestore data to UserData type
+        signIn(userData as UserData);
         console.log('Login successful for user:', userDoc.id);
-        router.push('/home');
+        router.replace('/(app)/home');
       } else {
         Alert.alert('Error', 'Incorrect password');
       }

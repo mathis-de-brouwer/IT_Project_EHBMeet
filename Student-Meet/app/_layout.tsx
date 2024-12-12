@@ -1,17 +1,18 @@
 import { Stack } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { useRouter, useSegments } from 'expo-router';
+import { UserData } from './types/user';
 
 // Simple auth context to track authentication state
 export const AuthContext = React.createContext({
-  signIn: (userData: any) => {},
+  signIn: (userData: UserData) => {},
   signOut: () => {},
-  user: null,
+  user: null as UserData | null,
 });
 
 // Auth provider component
 function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<UserData | null>(null);
   const rootSegment = useSegments()[0];
   const router = useRouter();
 
@@ -26,7 +27,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   return (
     <AuthContext.Provider
       value={{
-        signIn: (userData: any) => setUser(userData),
+        signIn: (userData: UserData) => setUser(userData),
         signOut: () => setUser(null),
         user,
       }}
