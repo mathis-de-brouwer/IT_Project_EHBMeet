@@ -3,7 +3,8 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'reac
 import Colors from '../../constants/Colors';
 import { useRouter } from 'expo-router';
 import { db } from '../../firebase_backup.js';
-import { collection, addDoc, doc, setDoc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, setDoc, getDoc, query, where, getDocs } from 'firebase/firestore';
+import CryptoJS from 'crypto-js';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -33,12 +34,25 @@ export default function RegisterScreen() {
     const isValidDomain = validDomains.some(domain => emailLower.endsWith(domain));
 
     if (!isValidDomain) {
-      Alert.alert('Error', 'Please use your EHB email address (@ehb.be or @student.ehb.be)');
+      Alert.alert('Error', 'Please use your EHB email address');
       return;
     }
 
     try {
-      // Generate a unique numeric User_ID (timestamp + random number)
+      // Check if email already exists
+      const usersRef = collection(db, "Users");
+      const q = query(usersRef, where("email", "==", userData.email.toLowerCase()));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        Alert.alert('Error', 'An account with this email already exists');
+        return;
+      }
+
+      // Hash the password
+      const hashedPassword = CryptoJS.SHA256(userData.Password).toString();
+
+      // Generate unique User_ID
       const timestamp = Date.now();
       const randomNum = Math.floor(Math.random() * 1000);
       const uniqueUserId = `${timestamp}${randomNum}`;
@@ -49,7 +63,7 @@ export default function RegisterScreen() {
         .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
         .replace(/[^a-z0-9.]/g, '');
 
-      // Check if document with this ID already exists
+      // Check if document with this name combination already exists
       const docRef = doc(db, "Users", customDocId);
       const docSnap = await getDoc(docRef);
 
@@ -58,15 +72,16 @@ export default function RegisterScreen() {
         return;
       }
 
-      // Create user document with custom doc ID and unique User_ID
-      const { User_ID, ...userDataWithoutID } = userData;
+      // Create user document with hashed password
+      const { User_ID, Password, ...userDataWithoutSensitive } = userData;
       await setDoc(docRef, {
-        ...userDataWithoutID,
+        ...userDataWithoutSensitive,
+        Password: hashedPassword, // Store hashed password instead of plain text
+        email: userData.email.toLowerCase(),
         User_ID: uniqueUserId
       });
 
       console.log("User registered with Doc ID: ", customDocId);
-      console.log("User_ID: ", uniqueUserId);
       Alert.alert('Success', 'Registration successful!', [
         { text: 'OK', onPress: () => router.push('/login') }
       ]);
