@@ -1,6 +1,6 @@
 import React from 'react';
 import { SafeAreaView, StyleSheet } from 'react-native';
-import TestingFirebase from './app/(tabs)/testingfirebase';
+import TestingFirebase from './app/(app)/testingfirebase';
 
 const App: React.FC = () => {
   return (

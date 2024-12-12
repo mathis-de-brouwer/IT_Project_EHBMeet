@@ -1,16 +1,45 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
-import Colors from '../constants/Colors';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import Colors from '../../constants/Colors';
 import { useRouter } from 'expo-router';
+import { db } from '../../firebase_backup.js';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
 export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = () => {
-    // Simuleer inloggen
-    router.push('/home');
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    try {
+      const usersRef = collection(db, "Users");
+      const q = query(usersRef, where("email", "==", email));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        Alert.alert('Error', 'No user found with this email');
+        return;
+      }
+
+      const userDoc = querySnapshot.docs[0];
+      const userData = userDoc.data();
+
+      if (userData.Password === password) {
+        // Store user data locally if needed
+        console.log('Login successful for user:', userDoc.id);
+        router.push('/home');
+      } else {
+        Alert.alert('Error', 'Incorrect password');
+      }
+    } catch (error) {
+      console.error("Error during login: ", error);
+      Alert.alert('Error', 'Login failed. Please try again.');
+    }
   };
 
   return (
@@ -22,6 +51,8 @@ export default function LoginScreen() {
         placeholderTextColor={Colors.placeholder}
         value={email}
         onChangeText={setEmail}
+        keyboardType="email-address"
+        autoCapitalize="none"
       />
       <TextInput
         style={styles.input}
@@ -29,12 +60,10 @@ export default function LoginScreen() {
         placeholderTextColor={Colors.placeholder}
         value={password}
         onChangeText={setPassword}
-        secureTextEntry/>
-      <TouchableOpacity style={styles.buttonPrimary} onPress={() => router.push('/home')}>
-
-
-
-        <Text style={styles.buttonText}>login</Text>
+        secureTextEntry
+      />
+      <TouchableOpacity style={styles.buttonPrimary} onPress={handleLogin}>
+        <Text style={styles.buttonText}>Login</Text>
       </TouchableOpacity>
       <TouchableOpacity style={styles.buttonSecondary} onPress={() => router.push('/register')}>
         <Text style={styles.buttonText}>Register</Text>

@@ -2,8 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { FontAwesome, MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import UserFooter from '../components/footer';
-import Colors from '../constants/Colors';
+import UserFooter from '../../components/footer';
+import Colors from '../../constants/Colors';
 
 const Home = () => {
   return (
