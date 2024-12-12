@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, Image, ScrollView } from 'react-native';
-import { FontAwesome, MaterialIcons, Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+
+import Header from '../components/header';
 import UserFooter from '../components/footer';
 import Colors from '../constants/Colors';
 
@@ -9,13 +9,7 @@ const Home = () => {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <LinearGradient colors={['#44c9ea', 'white']} style={styles.header}>
-        <Text style={styles.title}>Student Meet</Text>
-        <TouchableOpacity>
-          <FontAwesome name="search" size={24} color="white" />
-        </TouchableOpacity>
-      </LinearGradient>
-
+      <Header title="Student Meet" />
       {/* Body */}
       <ScrollView contentContainerStyle={styles.body}>
         <Text style={styles.placeholderText}>Evenementen komen hier...</Text>
