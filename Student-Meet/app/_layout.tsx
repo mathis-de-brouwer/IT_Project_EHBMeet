@@ -20,7 +20,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user && rootSegment !== "(auth)") {
       router.replace("/login");
     } else if (user && rootSegment === "(auth)") {
-      router.replace("/(app)/home");
+      router.replace("/home");
     }
   }, [user, rootSegment]);
 
