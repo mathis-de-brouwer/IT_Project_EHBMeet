@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import UserFooter from '../../components/footer';
 import Colors from '../../constants/Colors';
 import { db } from '../../firebase_backup.js';
-import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { AuthContext } from '../../app/_layout';
 
 interface EventData {
@@ -28,24 +28,22 @@ const Home = () => {
   const { user } = useContext(AuthContext);
 
   useEffect(() => {
-    fetchEvents();
-    testEventData();
-  }, []);
-
-  const fetchEvents = async () => {
-    try {
-      const eventsRef = collection(db, "Event");
-      const querySnapshot = await getDocs(eventsRef);
-      const eventsData = querySnapshot.docs.map(doc => ({
+    // Set up real-time listener for events
+    const eventsRef = collection(db, "Event");
+    const unsubscribe = onSnapshot(eventsRef, (snapshot) => {
+      const eventsData = snapshot.docs.map(doc => ({
         ...doc.data(),
         id: doc.id,
         participants: doc.data().participants || []
       } as EventData));
       setEvents(eventsData);
-    } catch (error) {
-      console.error("Error fetching events: ", error);
-    }
-  };
+    }, (error) => {
+      console.error("Error listening to events: ", error);
+    });
+
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
+  }, []);
 
   const testEventData = async () => {
     try {
