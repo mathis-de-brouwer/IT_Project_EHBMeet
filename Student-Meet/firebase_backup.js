@@ -2,12 +2,8 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getDatabase } from "firebase/database";
-<<<<<<< Updated upstream
-import { getAuth } from 'firebase/auth';
-=======
 import { getAuth } from "firebase/auth"; // Added for Firebase Authentication
 import { getStorage } from "firebase/storage"; // Added for Firebase Storage if needed
->>>>>>> Stashed changes
 
 // Your Firebase configuration
 const firebaseConfig = {
@@ -23,17 +19,9 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-<<<<<<< Updated upstream
-const db = getFirestore(app);
-const dbRealtime = getDatabase(app);
-const auth = getAuth(app);
-
-export {db, dbRealtime, auth};
-=======
 const db = getFirestore(app); // Firestore database
 const dbRealtime = getDatabase(app); // Realtime database
 const auth = getAuth(app); // Firebase authentication
 const storage = getStorage(app); // Firebase storage
 
 export { db, dbRealtime, auth, storage };
->>>>>>> Stashed changes
