@@ -8,6 +8,8 @@ import CryptoJS from 'crypto-js';
 import { AuthContext } from '../_layout';
 import { UserData } from '../../app/types/user';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { auth } from '../../firebase_backup';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -32,6 +34,12 @@ export default function LoginScreen() {
     }
 
     try {
+      // Sign out any existing session first
+      await signOut(auth);
+      
+      // Then sign in
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
       const usersRef = collection(db, "Users");
       const q = query(usersRef, where("email", "==", emailLower));
       const querySnapshot = await getDocs(q);
@@ -58,8 +66,19 @@ export default function LoginScreen() {
         Alert.alert('Error', 'Incorrect password');
       }
     } catch (error) {
-      console.error("Error during login: ", error);
-      Alert.alert('Error', 'Login failed. Please try again.');
+      console.error("Login error:", error);
+      Alert.alert('Error', 'Failed to login. Please try again.');
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      // Navigate to login screen
+      router.replace('/login');
+    } catch (error) {
+      console.error("Error signing out:", error);
+      Alert.alert('Error', 'Failed to sign out. Please try again.');
     }
   };
 
