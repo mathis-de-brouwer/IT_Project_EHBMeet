@@ -53,7 +53,7 @@ export default function LoginScreen() {
         
         signIn(userData as UserData);
         console.log('Login successful for user:', userDoc.id);
-        router.push('/home');
+        router.replace('/home');
       } else {
         Alert.alert('Error', 'Incorrect password');
       }

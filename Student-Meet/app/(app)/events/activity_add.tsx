@@ -1,14 +1,13 @@
 import React, { useState, useContext } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, ScrollView, Alert } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
 import { db } from '../../../firebase_backup';
 import { collection, addDoc } from 'firebase/firestore';
 import Colors from '../../../constants/Colors';
-import UserFooter from '../../../components/footer';
 import { AuthContext } from '../../_layout';
-import Header from '../../../components/header';
+import UserFooter from '../../../components/footer';
+import { Picker } from '@react-native-picker/picker';
+import { EventCategory } from '../../types/event';
 
 interface EventData {
   Category_id: string;
@@ -23,9 +22,11 @@ interface EventData {
 }
 
 export default function ActivityAddScreen() {
+  const router = useRouter();
   const { user } = useContext(AuthContext);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [eventData, setEventData] = useState<EventData>({
+  
+  const initialEventData = {
     Category_id: '',
     Date: '',
     Description: '',
@@ -35,20 +36,12 @@ export default function ActivityAddScreen() {
     Max_Participants: '',
     Phone_Number: '',
     User_ID: user?.User_ID || '',
-  });
+  };
+  
+  const [eventData, setEventData] = useState<EventData>(initialEventData);
 
-  // Functie om een afbeelding te kiezen
-  const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setEventData({ ...eventData, Event_picture: result.assets[0].uri });
-    }
+  const resetForm = () => {
+    setEventData(initialEventData);
   };
 
   const handleCreateEvent = async () => {
@@ -56,21 +49,33 @@ export default function ActivityAddScreen() {
     setIsSubmitting(true);
 
     try {
-      const requiredFields = ['Event_Title', 'Date', 'Location', 'Max_Participants', 'Category_id'];
+      // Validate required fields
+      const requiredFields = ['Event_Title', 'Date', 'Location', 'Max_Participants'];
       const missingFields = requiredFields.filter(field => !eventData[field as keyof EventData]);
-
+      
       if (missingFields.length > 0) {
         Alert.alert('Error', `Please fill in all required fields: ${missingFields.join(', ')}`);
         setIsSubmitting(false);
         return;
       }
 
-      await addDoc(collection(db, "Event"), {
+      // Add the event to Firestore
+      const eventRef = await addDoc(collection(db, "Event"), {
         ...eventData,
+        User_ID: user?.User_ID,
         Created_At: new Date().toISOString(),
       });
 
-      Alert.alert('Success', 'Event created successfully!');
+      console.log("Event created with ID: ", eventRef.id);
+      Alert.alert('Success', 'Event created successfully!', [
+        { 
+          text: 'OK', 
+          onPress: () => {
+            resetForm();  // Reset the form
+            router.replace('/(app)/home');  // Navigate home
+          }
+        }
+      ]);
     } catch (error) {
       console.error("Error creating event: ", error);
       Alert.alert('Error', 'Failed to create event. Please try again.');
@@ -81,72 +86,85 @@ export default function ActivityAddScreen() {
 
   return (
     <View style={styles.mainContainer}>
-       <Header title="Add Event" />
-      <ScrollView style={styles.scrollContainer}>
+      <ScrollView style={styles.container}>
+        <Text style={styles.title}>Create New Event</Text>
+        
         <TextInput
-          style={styles.titleInput}
-          placeholder="Add title here"
+          style={styles.input}
+          placeholder="Event Title *"
           placeholderTextColor={Colors.placeholder}
           value={eventData.Event_Title}
-          onChangeText={(text) => setEventData({ ...eventData, Event_Title: text })}
+          onChangeText={(text) => setEventData({...eventData, Event_Title: text})}
         />
 
-       
-     
+        <TextInput
+          style={styles.input}
+          placeholder="Date (YYYY-MM-DD) *"
+          placeholderTextColor={Colors.placeholder}
+          value={eventData.Date}
+          onChangeText={(text) => setEventData({...eventData, Date: text})}
+        />
 
         <TextInput
-          style={styles.description}
-          placeholder="Description..."
+          style={styles.input}
+          placeholder="Location *"
+          placeholderTextColor={Colors.placeholder}
+          value={eventData.Location}
+          onChangeText={(text) => setEventData({...eventData, Location: text})}
+        />
+
+        <TextInput
+          style={[styles.input, styles.textArea]}
+          placeholder="Description"
           placeholderTextColor={Colors.placeholder}
           value={eventData.Description}
-          onChangeText={(text) => setEventData({ ...eventData, Description: text })}
+          onChangeText={(text) => setEventData({...eventData, Description: text})}
           multiline
+          numberOfLines={4}
         />
 
-        <View style={styles.detailsContainer}>
-          <TextInput
-            style={styles.detailsInput}
-            placeholder="Location"
-            placeholderTextColor={Colors.placeholder}
-            value={eventData.Location}
-            onChangeText={(text) => setEventData({ ...eventData, Location: text })}
-          />
-          <TextInput
-            style={styles.detailsInput}
-            placeholder="Date (YYYY-MM-DD)"
-            placeholderTextColor={Colors.placeholder}
-            value={eventData.Date}
-            onChangeText={(text) => setEventData({ ...eventData, Date: text })}
-          />
-        </View>
-
-        <Text style={styles.categoryTitle}>Categories:</Text>
-        <View style={styles.categoryContainer}>
-          <TouchableOpacity onPress={() => setEventData({ ...eventData, Category_id: 'sport' })} style={styles.categoryBox}>
-            <Ionicons name="football-outline" size={50} color={eventData.Category_id === 'sport' ? Colors.primary : 'gray'} />
-            <Text style={styles.categoryText}>Sport</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setEventData({ ...eventData, Category_id: 'games' })} style={styles.categoryBox}>
-            <Ionicons name="game-controller-outline" size={50} color={eventData.Category_id === 'games' ? Colors.primary : 'gray'} />
-            <Text style={styles.categoryText}>Games</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => setEventData({ ...eventData, Category_id: 'creativity' })} style={styles.categoryBox}>
-            <Ionicons name="color-palette-outline" size={50} color={eventData.Category_id === 'creativity' ? Colors.primary : 'gray'} />
-            <Text style={styles.categoryText}>Creativity</Text>
-          </TouchableOpacity>
-        </View>
-
         <TextInput
-          style={styles.detailsInput}
-          placeholder="Max Participants"
+          style={styles.input}
+          placeholder="Maximum Participants *"
           placeholderTextColor={Colors.placeholder}
           value={eventData.Max_Participants}
-          onChangeText={(text) => setEventData({ ...eventData, Max_Participants: text })}
+          onChangeText={(text) => setEventData({...eventData, Max_Participants: text})}
           keyboardType="numeric"
         />
 
-        <TouchableOpacity style={styles.button} onPress={handleCreateEvent}>
-          <Text style={styles.buttonText}>{isSubmitting ? 'Creating...' : 'Create Event'}</Text>
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={eventData.Category_id as EventCategory}
+            onValueChange={(value: EventCategory) => 
+              setEventData({...eventData, Category_id: value})
+            }
+            style={styles.picker}
+          >
+            <Picker.Item label="Select Category *" value="" />
+            <Picker.Item label="Games" value="games" />
+            <Picker.Item label="Sport" value="sport" />
+            <Picker.Item label="EHB Events" value="ehb-events" />
+            <Picker.Item label="Creativity" value="creativity" />
+          </Picker>
+        </View>
+
+        <TextInput
+          style={styles.input}
+          placeholder="Phone Number"
+          placeholderTextColor={Colors.placeholder}
+          value={eventData.Phone_Number}
+          onChangeText={(text) => setEventData({...eventData, Phone_Number: text})}
+          keyboardType="phone-pad"
+        />
+
+        <TouchableOpacity 
+          style={[styles.button, isSubmitting && styles.buttonDisabled]} 
+          onPress={handleCreateEvent}
+          disabled={isSubmitting}
+        >
+          <Text style={styles.buttonText}>
+            {isSubmitting ? 'Creating...' : 'Create Event'}
+          </Text>
         </TouchableOpacity>
       </ScrollView>
       <UserFooter />
@@ -155,17 +173,62 @@ export default function ActivityAddScreen() {
 }
 
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1, backgroundColor: '#white' },
-  scrollContainer: { padding: 20 , marginTop: 150},
-  titleInput: { fontSize: 20, borderBottomWidth: 1, borderColor: Colors.inputBorder, marginBottom: 25, height: 45 },
- 
-  description: { height: 100, textAlignVertical: 'top', borderWidth: 1, borderColor: Colors.inputBorder, marginBottom: 10, padding: 10 },
-  detailsContainer: { marginBottom: 10 },
-  detailsInput: { borderWidth: 1, borderColor: Colors.inputBorder, padding: 10, marginBottom: 10, borderRadius: 5 },
-  categoryTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
-  categoryContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 25 },
-  categoryBox: { alignItems: 'center', flex: 1 },
-  categoryText: { marginTop: 5, color: Colors.text },
-  button: { backgroundColor: Colors.primary, paddingVertical: 15, borderRadius: 8, alignItems: 'center', marginTop: 10 },
-  buttonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-});
+  mainContainer: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  container: {
+    flex: 1,
+    padding: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: Colors.text,
+  },
+  input: {
+    width: '100%',
+    height: 50,
+    borderColor: Colors.inputBorder,
+    borderWidth: 1,
+    borderRadius: 8,
+    marginBottom: 15,
+    paddingHorizontal: 15,
+    backgroundColor: Colors.inputBackground,
+    fontSize: 16,
+    color: Colors.text,
+  },
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top',
+    paddingTop: 10,
+  },
+  button: {
+    backgroundColor: Colors.primary,
+    paddingVertical: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  buttonDisabled: {
+    opacity: 0.7,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
+    borderRadius: 8,
+    marginBottom: 15,
+    backgroundColor: Colors.inputBackground,
+  },
+  picker: {
+    height: 50,
+    width: '100%',
+  },
+}); 
