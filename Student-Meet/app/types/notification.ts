@@ -1,10 +1,10 @@
 export interface Notification {
   id: string;
-  type: 'leave_event' | 'join_event' | 'event_cancelled';
-  eventId: string;
-  eventTitle: string;
+  type: 'join_event' | 'leave_event' | 'event_cancelled';
   userId: string;
   userName: string;
+  eventId: string;
+  eventTitle: string;
   createdAt: string;
   read: boolean;
 } 

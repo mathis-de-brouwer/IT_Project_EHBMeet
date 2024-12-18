@@ -5,7 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import UserFooter from '../../components/footer';
 import Colors from '../../constants/Colors';
 import { db } from '../../firebase_backup.js';
-import { collection, getDocs, doc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, onSnapshot, addDoc, query, where } from 'firebase/firestore';
 import { AuthContext } from '../../app/_layout';
 import EventCard from '../../components/EventCard';
 import { EventData } from '../types/event';
@@ -60,51 +60,73 @@ const Home = () => {
   };
 
   const handleEventParticipation = async (event: EventData) => {
-    if (!user?.email || !event.id) return;
+    if (!user?.User_ID || !event.id) {
+      console.log("Missing user ID or event ID:", { userId: user?.User_ID, eventId: event.id });
+      return;
+    }
 
-    const isParticipant = event.participants?.includes(user.email);
+    const isParticipant = event.participants?.includes(user.User_ID);
+    const eventRef = doc(db, "Event", event.id);
+    let newParticipants: string[] = [];
 
-    if (isParticipant) {
-      // Handle leaving the event
-      try {
-        const eventRef = doc(db, "Event", event.id);
-        const newParticipants = event.participants?.filter(email => email !== user.email) || [];
+    try {
+      if (isParticipant) {
+        // Handle leaving event
+        newParticipants = event.participants?.filter(id => id !== user.User_ID) || [];
         
         await updateDoc(eventRef, {
           participants: newParticipants
         });
 
-        setEvents(prevEvents => prevEvents.map(e => 
-          e.id === event.id 
-            ? { ...e, participants: newParticipants }
-            : e
-        ));
+        // Create notification for event creator
+        if (event.User_ID) {
+          const notificationRef = await addDoc(collection(db, 'Notifications'), {
+            userId: event.User_ID,
+            userName: user.First_Name || user.email,
+            eventId: event.id,
+            eventTitle: event.Event_Title,
+            type: 'leave_event',
+            createdAt: new Date().toISOString(),
+            read: false
+          });
+          console.log("Leave notification created with ID:", notificationRef.id);
+        } else {
+          console.log("No creator found for event:", event);
+        }
 
-        Alert.alert('Success', 'You have left the event');
-      } catch (error) {
-        console.error("Error leaving event: ", error);
-        Alert.alert('Error', 'Failed to leave event. Please try again.');
-      }
-    } else {
-      // Handle joining the event
-      if ((event.participants?.length || 0) >= parseInt(event.Max_Participants)) {
-        Alert.alert('Event Full', 'This event has reached its maximum participants');
-        return;
-      }
+      } else {
+        // Handle joining event
+        if ((event.participants?.length || 0) >= parseInt(event.Max_Participants)) {
+          Alert.alert('Event Full', 'This event has reached its maximum participants');
+          return;
+        }
 
-      try {
-        const eventRef = doc(db, "Event", event.id);
-        const newParticipants = [...(event.participants || []), user.email];
+        newParticipants = [...(event.participants || []), user.User_ID];
         
         await updateDoc(eventRef, {
           participants: newParticipants
         });
 
-        setEvents(prevEvents => prevEvents.map(e => 
-          e.id === event.id 
-            ? { ...e, participants: newParticipants }
-            : e
-        ));
+        // Create notification for event creator
+        if (event.User_ID) {
+          const notificationRef = await addDoc(collection(db, 'Notifications'), {
+            userId: event.User_ID,
+            userName: user.First_Name || user.email,
+            eventId: event.id,
+            eventTitle: event.Event_Title,
+            type: 'join_event',
+            createdAt: new Date().toISOString(),
+            read: false
+          });
+          console.log("Join notification created with ID:", notificationRef.id);
+        } else {
+          console.log("No creator found for event:", event);
+        }
+      }
+
+      setEvents(prevEvents => prevEvents.map(e => 
+        e.id === event.id ? { ...e, participants: newParticipants } : e
+      ));
 
         Alert.alert('Success', 'You have successfully joined the event!');
       } catch (error) {
