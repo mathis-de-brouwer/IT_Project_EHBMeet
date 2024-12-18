@@ -72,38 +72,58 @@ const Home = () => {
     }
   };
 
-  const handleJoinEvent = async (event: EventData) => {
+  const handleEventParticipation = async (event: EventData) => {
     if (!user?.email || !event.id) return;
 
-    if (event.participants?.includes(user.email)) {
-      Alert.alert('Already Joined', 'You have already joined this event');
-      return;
-    }
+    const isParticipant = event.participants?.includes(user.email);
 
-    const currentParticipants = event.participants?.length || 0;
-    if (currentParticipants >= parseInt(event.Max_Participants)) {
-      Alert.alert('Event Full', 'This event has reached its maximum participants');
-      return;
-    }
+    if (isParticipant) {
+      // Handle leaving the event
+      try {
+        const eventRef = doc(db, "Event", event.id);
+        const newParticipants = event.participants?.filter(email => email !== user.email) || [];
+        
+        await updateDoc(eventRef, {
+          participants: newParticipants
+        });
 
-    try {
-      const eventRef = doc(db, "Event", event.id);
-      const newParticipants = [...(event.participants || []), user.email];
-      
-      await updateDoc(eventRef, {
-        participants: newParticipants
-      });
+        setEvents(prevEvents => prevEvents.map(e => 
+          e.id === event.id 
+            ? { ...e, participants: newParticipants }
+            : e
+        ));
 
-      setEvents(prevEvents => prevEvents.map(e => 
-        e.id === event.id 
-          ? { ...e, participants: newParticipants }
-          : e
-      ));
+        Alert.alert('Success', 'You have left the event');
+      } catch (error) {
+        console.error("Error leaving event: ", error);
+        Alert.alert('Error', 'Failed to leave event. Please try again.');
+      }
+    } else {
+      // Handle joining the event
+      if ((event.participants?.length || 0) >= parseInt(event.Max_Participants)) {
+        Alert.alert('Event Full', 'This event has reached its maximum participants');
+        return;
+      }
 
-      Alert.alert('Success', 'You have successfully joined the event!');
-    } catch (error) {
-      console.error("Error joining event: ", error);
-      Alert.alert('Error', 'Failed to join event. Please try again.');
+      try {
+        const eventRef = doc(db, "Event", event.id);
+        const newParticipants = [...(event.participants || []), user.email];
+        
+        await updateDoc(eventRef, {
+          participants: newParticipants
+        });
+
+        setEvents(prevEvents => prevEvents.map(e => 
+          e.id === event.id 
+            ? { ...e, participants: newParticipants }
+            : e
+        ));
+
+        Alert.alert('Success', 'You have successfully joined the event!');
+      } catch (error) {
+        console.error("Error joining event: ", error);
+        Alert.alert('Error', 'Failed to join event. Please try again.');
+      }
     }
   };
 
@@ -144,14 +164,15 @@ const Home = () => {
             style={[
               styles.joinButton,
               event.participants?.includes(user?.email || '') && styles.joinedButton,
-              (event.participants?.length || 0) >= parseInt(event.Max_Participants) && styles.disabledButton
+              (event.participants?.length || 0) >= parseInt(event.Max_Participants) && 
+              !event.participants?.includes(user?.email || '') && styles.disabledButton
             ]}
-            onPress={() => handleJoinEvent(event)}
-            disabled={event.participants?.includes(user?.email || '') || 
-                     (event.participants?.length || 0) >= parseInt(event.Max_Participants)}
+            onPress={() => handleEventParticipation(event)}
+            disabled={(event.participants?.length || 0) >= parseInt(event.Max_Participants) && 
+                     !event.participants?.includes(user?.email || '')}
           >
             <Text style={styles.joinButtonText}>
-              {event.participants?.includes(user?.email || '') ? 'Joined' : 'Join'}
+              {event.participants?.includes(user?.email || '') ? 'Leave' : 'Join'}
             </Text>
           </TouchableOpacity>
         </View>
