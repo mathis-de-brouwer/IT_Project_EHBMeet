@@ -14,6 +14,10 @@ interface EventData {
   Location: string;
   Max_Participants: string;
   Event_picture?: string;
+  Start_Time?: string;
+  End_Time?: string;
+  Category?: string;
+  Organizer?: string;
 }
 
 const Home = () => {
@@ -21,6 +25,7 @@ const Home = () => {
 
   useEffect(() => {
     fetchEvents();
+    testEventData();
   }, []);
 
   const fetchEvents = async () => {
@@ -31,6 +36,31 @@ const Home = () => {
       setEvents(eventsData);
     } catch (error) {
       console.error("Error fetching events: ", error);
+    }
+  };
+
+  const testEventData = async () => {
+    try {
+      const eventsRef = collection(db, "Event");
+      const querySnapshot = await getDocs(eventsRef);
+      
+      querySnapshot.docs.forEach((doc, index) => {
+        const data = doc.data();
+        console.log(`\n--- Event ${index + 1} Data Check ---`);
+        console.log('Document ID:', doc.id);
+        console.log('Title:', data.Event_Title || 'MISSING');
+        console.log('Description:', data.Description || 'MISSING');
+        console.log('Date:', data.Date || 'MISSING');
+        console.log('Location:', data.Location || 'MISSING');
+        console.log('Max Participants:', data.Max_Participants || 'MISSING');
+        console.log('Event Picture:', data.Event_picture || 'MISSING');
+        console.log('Start Time:', data.Start_Time || 'MISSING');
+        console.log('End Time:', data.End_Time || 'MISSING');
+        console.log('Category:', data.Category || 'MISSING');
+        console.log('Organizer:', data.Organizer || 'MISSING');
+      });
+    } catch (error) {
+      console.error("Error testing event data: ", error);
     }
   };
 
@@ -49,9 +79,18 @@ const Home = () => {
       )}
       <View style={styles.cardContent}>
         <Text style={styles.eventTitle}>{event.Event_Title}</Text>
-        <Text style={styles.eventDate}>{event.Date}</Text>
+        <Text style={styles.eventDate}>📅 {event.Date}</Text>
+        {event.Start_Time && event.End_Time && (
+          <Text style={styles.eventTime}>⏰ {event.Start_Time} - {event.End_Time}</Text>
+        )}
         <Text style={styles.eventLocation}>📍 {event.Location}</Text>
-        <Text style={styles.eventDescription} numberOfLines={2}>
+        {event.Category && (
+          <Text style={styles.eventCategory}>🏷️ {event.Category}</Text>
+        )}
+        {event.Organizer && (
+          <Text style={styles.eventOrganizer}>👤 Organized by: {event.Organizer}</Text>
+        )}
+        <Text style={styles.eventDescription}>
           {event.Description || 'No description available'}
         </Text>
         <View style={styles.cardFooter}>
@@ -164,6 +203,21 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   eventLocation: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+  },
+  eventTime: {
+    fontSize: 14,
+    color: Colors.secondary,
+    marginBottom: 4,
+  },
+  eventCategory: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  eventOrganizer: {
     fontSize: 14,
     color: '#666',
     marginBottom: 8,
