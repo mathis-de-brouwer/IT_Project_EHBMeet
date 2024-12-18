@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
 import { doc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
 import { db } from '../../../firebase_backup';
 import { EventData } from '../../types/event';
@@ -11,7 +11,7 @@ import { useContext } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function EventDetailsScreen() {
-  const { eventId } = useLocalSearchParams();
+  const { eventId, fromNotifications } = useLocalSearchParams();
   const [event, setEvent] = useState<EventData | null>(null);
   const [isJoining, setIsJoining] = useState(false);
   const { user } = useContext(AuthContext);
@@ -101,6 +101,14 @@ export default function EventDetailsScreen() {
     }
   };
 
+  const handleBack = () => {
+    if (fromNotifications === 'true') {
+      router.replace('/(app)/profile/notifications');
+    } else {
+      router.replace('/(app)/home');
+    }
+  };
+
   if (!event) {
     return (
       <View style={styles.container}>
@@ -113,7 +121,7 @@ export default function EventDetailsScreen() {
     <View style={styles.container}>
       <TouchableOpacity 
         style={styles.backButton} 
-        onPress={() => router.replace('/(app)/home')}
+        onPress={handleBack}
       >
         <Ionicons name="arrow-back" size={24} color={Colors.text} />
       </TouchableOpacity>
@@ -154,26 +162,28 @@ export default function EventDetailsScreen() {
           </Text>
         </View>
 
-        {hasJoined ? (
-          <TouchableOpacity 
-            style={[styles.leaveButton, isJoining && styles.buttonDisabled]}
-            onPress={handleLeaveEvent}
-            disabled={isJoining}
-          >
-            <Text style={styles.buttonText}>
-              {isJoining ? 'Leaving...' : 'Leave Event'}
-            </Text>
-          </TouchableOpacity>
-        ) : (
-          <TouchableOpacity 
-            style={[styles.joinButton, isJoining && styles.buttonDisabled]}
-            onPress={handleJoinEvent}
-            disabled={isJoining || participantCount >= parseInt(event.Max_Participants)}
-          >
-            <Text style={styles.buttonText}>
-              {isJoining ? 'Joining...' : 'Join Event'}
-            </Text>
-          </TouchableOpacity>
+        {!fromNotifications && (
+          hasJoined ? (
+            <TouchableOpacity 
+              style={[styles.leaveButton, isJoining && styles.buttonDisabled]}
+              onPress={handleLeaveEvent}
+              disabled={isJoining}
+            >
+              <Text style={styles.buttonText}>
+                {isJoining ? 'Leaving...' : 'Leave Event'}
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity 
+              style={[styles.joinButton, isJoining && styles.buttonDisabled]}
+              onPress={handleJoinEvent}
+              disabled={isJoining || participantCount >= parseInt(event.Max_Participants)}
+            >
+              <Text style={styles.buttonText}>
+                {isJoining ? 'Joining...' : 'Join Event'}
+              </Text>
+            </TouchableOpacity>
+          )
         )}
       </ScrollView>
       <UserFooter />
