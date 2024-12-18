@@ -1,11 +1,14 @@
 import React, { useState, useContext } from 'react';
+import { useRouter } from 'expo-router';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, ScrollView, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { db } from '../../../firebase_backup';
 import { collection, addDoc } from 'firebase/firestore';
 import Colors from '../../../constants/Colors';
 import UserFooter from '../../../components/footer';
 import { AuthContext } from '../../_layout';
+import Header from '../../../components/header';
 
 interface EventData {
   Category_id: string;
@@ -34,8 +37,18 @@ export default function ActivityAddScreen() {
     User_ID: user?.User_ID || '',
   });
 
-  const handleCategorySelect = (category: string) => {
-    setEventData({ ...eventData, Category_id: category });
+  // Functie om een afbeelding te kiezen
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setEventData({ ...eventData, Event_picture: result.assets[0].uri });
+    }
   };
 
   const handleCreateEvent = async () => {
@@ -43,7 +56,6 @@ export default function ActivityAddScreen() {
     setIsSubmitting(true);
 
     try {
-      // Validate required fields
       const requiredFields = ['Event_Title', 'Date', 'Location', 'Max_Participants', 'Category_id'];
       const missingFields = requiredFields.filter(field => !eventData[field as keyof EventData]);
 
@@ -69,8 +81,8 @@ export default function ActivityAddScreen() {
 
   return (
     <View style={styles.mainContainer}>
+       <Header title="Agenda" />
       <ScrollView style={styles.scrollContainer}>
-        {/* Title Input */}
         <TextInput
           style={styles.titleInput}
           placeholder="Add title here"
@@ -81,12 +93,15 @@ export default function ActivityAddScreen() {
 
         {/* Photo Section */}
         <View style={styles.photoContainer}>
-          <TouchableOpacity style={styles.photoBox}>
-            <Text style={styles.photoText}>Add photo here</Text>
+          <TouchableOpacity style={styles.photoBox} onPress={pickImage}>
+            {eventData.Event_picture ? (
+              <Image source={{ uri: eventData.Event_picture }} style={styles.image} />
+            ) : (
+              <Text style={styles.photoText}>Add photo here</Text>
+            )}
           </TouchableOpacity>
         </View>
 
-        {/* Description */}
         <TextInput
           style={styles.description}
           placeholder="Description..."
@@ -96,7 +111,6 @@ export default function ActivityAddScreen() {
           multiline
         />
 
-        {/* Location and Date */}
         <View style={styles.detailsContainer}>
           <TextInput
             style={styles.detailsInput}
@@ -114,24 +128,22 @@ export default function ActivityAddScreen() {
           />
         </View>
 
-        {/* Categories */}
         <Text style={styles.categoryTitle}>Categories:</Text>
         <View style={styles.categoryContainer}>
-          <TouchableOpacity onPress={() => handleCategorySelect('sport')} style={styles.categoryBox}>
+          <TouchableOpacity onPress={() => setEventData({ ...eventData, Category_id: 'sport' })} style={styles.categoryBox}>
             <Ionicons name="football-outline" size={50} color={eventData.Category_id === 'sport' ? Colors.primary : 'gray'} />
             <Text style={styles.categoryText}>Sport</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleCategorySelect('games')} style={styles.categoryBox}>
+          <TouchableOpacity onPress={() => setEventData({ ...eventData, Category_id: 'games' })} style={styles.categoryBox}>
             <Ionicons name="game-controller-outline" size={50} color={eventData.Category_id === 'games' ? Colors.primary : 'gray'} />
             <Text style={styles.categoryText}>Games</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => handleCategorySelect('creativity')} style={styles.categoryBox}>
+          <TouchableOpacity onPress={() => setEventData({ ...eventData, Category_id: 'creativity' })} style={styles.categoryBox}>
             <Ionicons name="color-palette-outline" size={50} color={eventData.Category_id === 'creativity' ? Colors.primary : 'gray'} />
             <Text style={styles.categoryText}>Creativity</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Max Participants */}
         <TextInput
           style={styles.detailsInput}
           placeholder="Max Participants"
@@ -141,7 +153,6 @@ export default function ActivityAddScreen() {
           keyboardType="numeric"
         />
 
-        {/* Submit Button */}
         <TouchableOpacity style={styles.button} onPress={handleCreateEvent}>
           <Text style={styles.buttonText}>{isSubmitting ? 'Creating...' : 'Create Event'}</Text>
         </TouchableOpacity>
@@ -152,12 +163,13 @@ export default function ActivityAddScreen() {
 }
 
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1, backgroundColor: '#f9f9f9' },
-  scrollContainer: { padding: 20 },
+  mainContainer: { flex: 1, backgroundColor: '#white',  },
+  scrollContainer: { padding: 20 , marginTop: 150},
   titleInput: { fontSize: 20, borderBottomWidth: 1, borderColor: Colors.inputBorder, marginBottom: 10 },
   photoContainer: { alignItems: 'center', marginVertical: 10 },
-  photoBox: { width: 150, height: 150, backgroundColor: Colors.inputBackground, justifyContent: 'center', alignItems: 'center' },
+  photoBox: { width: 150, height: 150, backgroundColor: '#ffffff', justifyContent: 'center', alignItems: 'center' },
   photoText: { color: Colors.placeholder },
+  image: { width: '100%', height: '100%', borderRadius: 8 },
   description: { height: 100, textAlignVertical: 'top', borderWidth: 1, borderColor: Colors.inputBorder, marginBottom: 10, padding: 10 },
   detailsContainer: { marginBottom: 10 },
   detailsInput: { borderWidth: 1, borderColor: Colors.inputBorder, padding: 10, marginBottom: 10, borderRadius: 5 },
