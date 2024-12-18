@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Home from '../app/home';
 import Agenda from '../app/agenda';
 import ActivityAdd from '../app/activity_add';
-import MyProfile from '../app/MyProfile';
+import MyProfile from '../app/(app)/profile/MyProfile';
 
 const Tab = createBottomTabNavigator();
 
