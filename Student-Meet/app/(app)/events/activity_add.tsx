@@ -81,7 +81,7 @@ export default function ActivityAddScreen() {
 
   return (
     <View style={styles.mainContainer}>
-       <Header title="Agenda" />
+       <Header title="Add Event" />
       <ScrollView style={styles.scrollContainer}>
         <TextInput
           style={styles.titleInput}
@@ -91,16 +91,8 @@ export default function ActivityAddScreen() {
           onChangeText={(text) => setEventData({ ...eventData, Event_Title: text })}
         />
 
-        {/* Photo Section */}
-        <View style={styles.photoContainer}>
-          <TouchableOpacity style={styles.photoBox} onPress={pickImage}>
-            {eventData.Event_picture ? (
-              <Image source={{ uri: eventData.Event_picture }} style={styles.image} />
-            ) : (
-              <Text style={styles.photoText}>Add photo here</Text>
-            )}
-          </TouchableOpacity>
-        </View>
+       
+     
 
         <TextInput
           style={styles.description}
@@ -163,18 +155,15 @@ export default function ActivityAddScreen() {
 }
 
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1, backgroundColor: '#white',  },
+  mainContainer: { flex: 1, backgroundColor: '#white' },
   scrollContainer: { padding: 20 , marginTop: 150},
-  titleInput: { fontSize: 20, borderBottomWidth: 1, borderColor: Colors.inputBorder, marginBottom: 10 },
-  photoContainer: { alignItems: 'center', marginVertical: 10 },
-  photoBox: { width: 150, height: 150, backgroundColor: '#ffffff', justifyContent: 'center', alignItems: 'center' },
-  photoText: { color: Colors.placeholder },
-  image: { width: '100%', height: '100%', borderRadius: 8 },
+  titleInput: { fontSize: 20, borderBottomWidth: 1, borderColor: Colors.inputBorder, marginBottom: 25, height: 45 },
+ 
   description: { height: 100, textAlignVertical: 'top', borderWidth: 1, borderColor: Colors.inputBorder, marginBottom: 10, padding: 10 },
   detailsContainer: { marginBottom: 10 },
   detailsInput: { borderWidth: 1, borderColor: Colors.inputBorder, padding: 10, marginBottom: 10, borderRadius: 5 },
   categoryTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
-  categoryContainer: { flexDirection: 'row', justifyContent: 'space-between' },
+  categoryContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 25 },
   categoryBox: { alignItems: 'center', flex: 1 },
   categoryText: { marginTop: 5, color: Colors.text },
   button: { backgroundColor: Colors.primary, paddingVertical: 15, borderRadius: 8, alignItems: 'center', marginTop: 10 },
