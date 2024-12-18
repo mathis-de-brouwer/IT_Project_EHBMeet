@@ -9,12 +9,16 @@ const UserFooter = () => {
 
   const isActive = (path: string) => currentPath.includes(path);
 
+  const navigate = (path: string) => {
+    router.replace(path as any);
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.footerContainer}>
         <TouchableOpacity
           style={styles.iconContainer}
-          onPress={() => router.push('/(app)/home')}
+          onPress={() => navigate('/(app)/home')}
         >
           <Ionicons 
             name={isActive('home') ? 'home' : 'home-outline'} 
@@ -25,7 +29,7 @@ const UserFooter = () => {
 
         <TouchableOpacity
           style={styles.iconContainer}
-          onPress={() => router.push('/(app)/agenda')}
+          onPress={() => navigate('/(app)/agenda')}
         >
           <Ionicons 
             name={isActive('agenda') ? 'calendar' : 'calendar-outline'} 
@@ -36,7 +40,7 @@ const UserFooter = () => {
 
         <TouchableOpacity
           style={styles.iconContainer}
-          onPress={() => router.push('/(app)/events/activity_add')}
+          onPress={() => navigate('/(app)/events/activity_add')}
         >
           <Ionicons 
             name={isActive('activity_add') ? 'add-circle' : 'add-circle-outline'} 
@@ -47,7 +51,7 @@ const UserFooter = () => {
 
         <TouchableOpacity
           style={styles.iconContainer}
-          onPress={() => router.push('/(app)/profile/MyProfile')}
+          onPress={() => navigate('/(app)/profile/MyProfile')}
         >
           <Ionicons 
             name={isActive('profile') ? 'person' : 'person-outline'} 

@@ -3,31 +3,48 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { EventData } from '../app/types/event';
 import Colors from '../constants/Colors';
 import { FontAwesome } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 interface EventCardProps {
   event: EventData;
 }
 
 const EventCard = ({ event }: EventCardProps) => {
+  const router = useRouter();
+  const participantCount = event.participants?.length || 0;
+  const isFull = participantCount >= parseInt(event.Max_Participants);
+
+  const handlePress = () => {
+    router.push({
+      pathname: '/events/activity',
+      params: { eventId: event.id }
+    });
+  };
+
   return (
-    <View style={styles.card}>
-      <View style={styles.cardContent}>
-        <Text style={styles.eventTitle}>{event.Event_Title}</Text>
-        <Text style={styles.eventDate}>{event.Date}</Text>
-        <Text style={styles.eventLocation}>📍 {event.Location}</Text>
-        <Text style={styles.eventDescription} numberOfLines={2}>
-          {event.Description || 'No description available'}
-        </Text>
-        <View style={styles.cardFooter}>
-          <Text style={styles.participants}>
-            <FontAwesome name="users" size={16} color="#666" /> {event.Max_Participants}
+    <TouchableOpacity onPress={handlePress}>
+      <View style={styles.card}>
+        <View style={styles.cardContent}>
+          <Text style={styles.eventTitle}>{event.Event_Title}</Text>
+          <Text style={styles.eventDate}>{event.Date}</Text>
+          <Text style={styles.eventLocation}>📍 {event.Location}</Text>
+          <Text style={styles.eventDescription} numberOfLines={2}>
+            {event.Description || 'No description available'}
           </Text>
-          <TouchableOpacity style={styles.joinButton}>
-            <Text style={styles.joinButtonText}>Join</Text>
-          </TouchableOpacity>
+          <View style={styles.cardFooter}>
+            <Text style={styles.participants}>
+              <FontAwesome name="users" size={16} color="#666" /> 
+              {participantCount}/{event.Max_Participants}
+            </Text>
+            <View style={styles.statusContainer}>
+              <Text style={[styles.status, styles[event.status || (isFull ? 'full' : 'open')]]}>
+                {isFull ? 'FULL' : 'OPEN'}
+              </Text>
+            </View>
+          </View>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 
@@ -86,6 +103,24 @@ const styles = StyleSheet.create({
   joinButtonText: {
     color: 'white',
     fontWeight: 'bold',
+  },
+  statusContainer: {
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  status: {
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  open: {
+    color: Colors.success,
+  },
+  full: {
+    color: Colors.error,
+  },
+  cancelled: {
+    color: Colors.placeholder,
   },
 });
 

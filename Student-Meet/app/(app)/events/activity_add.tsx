@@ -26,7 +26,7 @@ export default function ActivityAddScreen() {
   const { user } = useContext(AuthContext);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const [eventData, setEventData] = useState<EventData>({
+  const initialEventData = {
     Category_id: '',
     Date: '',
     Description: '',
@@ -36,7 +36,13 @@ export default function ActivityAddScreen() {
     Max_Participants: '',
     Phone_Number: '',
     User_ID: user?.User_ID || '',
-  });
+  };
+  
+  const [eventData, setEventData] = useState<EventData>(initialEventData);
+
+  const resetForm = () => {
+    setEventData(initialEventData);
+  };
 
   const handleCreateEvent = async () => {
     if (isSubmitting) return;
@@ -62,7 +68,13 @@ export default function ActivityAddScreen() {
 
       console.log("Event created with ID: ", eventRef.id);
       Alert.alert('Success', 'Event created successfully!', [
-        { text: 'OK', onPress: () => router.back() }
+        { 
+          text: 'OK', 
+          onPress: () => {
+            resetForm();  // Reset the form
+            router.replace('/(app)/home');  // Navigate home
+          }
+        }
       ]);
     } catch (error) {
       console.error("Error creating event: ", error);
