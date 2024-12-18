@@ -15,14 +15,23 @@ const EventCard = ({ event }: EventCardProps) => {
   const isFull = participantCount >= parseInt(event.Max_Participants);
 
   const handlePress = () => {
+    if (!event.id) {
+      console.log('No event ID found:', event);
+      return;
+    }
+    
+    console.log('Navigating to event:', event.id);
     router.push({
-      pathname: '/events/activity',
+      pathname: '/(app)/events/activity',
       params: { eventId: event.id }
     });
   };
 
   return (
-    <TouchableOpacity onPress={handlePress}>
+    <TouchableOpacity 
+      onPress={handlePress}
+      activeOpacity={0.7}
+    >
       <View style={styles.card}>
         <View style={styles.cardContent}>
           <Text style={styles.eventTitle}>{event.Event_Title}</Text>
