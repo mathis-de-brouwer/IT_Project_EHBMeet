@@ -12,26 +12,6 @@ import { db } from '../../../firebase_backup';
 export default function MyProfileScreen() {
   const { user, signOut } = useContext(AuthContext);
   const router = useRouter();
-  const [profileData, setProfileData] = useState<UserData | null>(null);
-
-  useEffect(() => {
-    const fetchProfileData = async () => {
-      if (!user?.User_ID) return;
-      
-      try {
-        const userDoc = await getDoc(doc(db, "Users", user.User_ID));
-        if (userDoc.exists()) {
-          const data = userDoc.data() as UserData;
-          console.log("Profile Data:", data);
-          setProfileData(data);
-        }
-      } catch (error) {
-        console.error("Error fetching profile data:", error);
-      }
-    };
-
-    fetchProfileData();
-  }, [user]);
 
   const handleSignOut = async () => {
     Alert.alert(
@@ -65,16 +45,22 @@ export default function MyProfileScreen() {
         <View style={styles.profileHeader}>
           <Image
             source={
-              profileData?.Profile_Picture
-                ? { uri: profileData.Profile_Picture }
+              user?.Profile_Picture
+                ? { uri: user.Profile_Picture }
                 : require('../../../assets/images/default-avatar.png')
             }
             style={styles.profileImage}
           />
           
+          <Text style={styles.name}>
+            {user?.First_Name} {user?.Second_name}
+          </Text>
+          
           <View style={styles.userInfoContainer}>
             <FontAwesome name="envelope" size={16} color={Colors.secondary} />
-            <Text style={styles.userInfoText}>{profileData?.email}</Text>
+            <Text style={styles.userInfoText}>
+              {user?.email}
+            </Text>
           </View>
         </View>
 
@@ -83,7 +69,7 @@ export default function MyProfileScreen() {
             <FontAwesome name="user" size={20} color={Colors.primary} />
             <Text style={styles.infoLabel}>Description</Text>
             <Text style={styles.infoText}>
-              {profileData?.Description || 'No description added'}
+              {user?.Description || 'No description added'}
             </Text>
           </View>
 
@@ -91,7 +77,7 @@ export default function MyProfileScreen() {
             <FontAwesome name="gamepad" size={20} color={Colors.primary} />
             <Text style={styles.infoLabel}>Steam Username</Text>
             <Text style={styles.infoText}>
-              {profileData?.Steam_name || 'Not provided'}
+              {user?.Steam_name || 'Not provided'}
             </Text>
           </View>
 
@@ -99,7 +85,7 @@ export default function MyProfileScreen() {
             <FontAwesome5 name="discord" size={20} color={Colors.primary} />
             <Text style={styles.infoLabel}>Discord Username</Text>
             <Text style={styles.infoText}>
-              {profileData?.Discord_name || 'Not provided'}
+              {user?.Discord_name || 'Not provided'}
             </Text>
           </View>
         </View>
@@ -150,7 +136,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   name: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
     color: Colors.text,
     marginBottom: 10,
@@ -219,5 +205,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.secondary,
     marginLeft: 8,
+  },
+  debugText: {
+    fontSize: 12,
+    color: 'red',
+    marginTop: 5,
   },
 });
