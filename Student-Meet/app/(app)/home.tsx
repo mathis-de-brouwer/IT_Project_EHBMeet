@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
+import React, { useEffect, useState, useContext } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import UserFooter from '../../components/footer';
 import Colors from '../../constants/Colors';
 import { db } from '../../firebase_backup.js';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { AuthContext } from '../../app/_layout';
 
 interface EventData {
   Event_Title: string;
@@ -14,23 +15,113 @@ interface EventData {
   Location: string;
   Max_Participants: string;
   Event_picture?: string;
+  Start_Time?: string;
+  End_Time?: string;
+  Category?: string;
+  Organizer?: string;
+  participants?: string[];
+  id?: string;
 }
 
 const Home = () => {
   const [events, setEvents] = useState<EventData[]>([]);
+  const { user } = useContext(AuthContext);
 
   useEffect(() => {
-    fetchEvents();
+    // Set up real-time listener for events
+    const eventsRef = collection(db, "Event");
+    const unsubscribe = onSnapshot(eventsRef, (snapshot) => {
+      const eventsData = snapshot.docs.map(doc => ({
+        ...doc.data(),
+        id: doc.id,
+        participants: doc.data().participants || []
+      } as EventData));
+      setEvents(eventsData);
+    }, (error) => {
+      console.error("Error listening to events: ", error);
+    });
+
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
   }, []);
 
-  const fetchEvents = async () => {
+  const testEventData = async () => {
     try {
       const eventsRef = collection(db, "Event");
       const querySnapshot = await getDocs(eventsRef);
-      const eventsData = querySnapshot.docs.map(doc => doc.data() as EventData);
-      setEvents(eventsData);
+      
+      querySnapshot.docs.forEach((doc, index) => {
+        const data = doc.data();
+        console.log(`\n--- Event ${index + 1} Data Check ---`);
+        console.log('Document ID:', doc.id);
+        console.log('Title:', data.Event_Title || 'MISSING');
+        console.log('Description:', data.Description || 'MISSING');
+        console.log('Date:', data.Date || 'MISSING');
+        console.log('Location:', data.Location || 'MISSING');
+        console.log('Max Participants:', data.Max_Participants || 'MISSING');
+        console.log('Event Picture:', data.Event_picture || 'MISSING');
+        console.log('Start Time:', data.Start_Time || 'MISSING');
+        console.log('End Time:', data.End_Time || 'MISSING');
+        console.log('Category:', data.Category || 'MISSING');
+        console.log('Organizer:', data.Organizer || 'MISSING');
+      });
     } catch (error) {
-      console.error("Error fetching events: ", error);
+      console.error("Error testing event data: ", error);
+    }
+  };
+
+  const handleEventParticipation = async (event: EventData) => {
+    if (!user?.email || !event.id) return;
+
+    const isParticipant = event.participants?.includes(user.email);
+
+    if (isParticipant) {
+      // Handle leaving the event
+      try {
+        const eventRef = doc(db, "Event", event.id);
+        const newParticipants = event.participants?.filter(email => email !== user.email) || [];
+        
+        await updateDoc(eventRef, {
+          participants: newParticipants
+        });
+
+        setEvents(prevEvents => prevEvents.map(e => 
+          e.id === event.id 
+            ? { ...e, participants: newParticipants }
+            : e
+        ));
+
+        Alert.alert('Success', 'You have left the event');
+      } catch (error) {
+        console.error("Error leaving event: ", error);
+        Alert.alert('Error', 'Failed to leave event. Please try again.');
+      }
+    } else {
+      // Handle joining the event
+      if ((event.participants?.length || 0) >= parseInt(event.Max_Participants)) {
+        Alert.alert('Event Full', 'This event has reached its maximum participants');
+        return;
+      }
+
+      try {
+        const eventRef = doc(db, "Event", event.id);
+        const newParticipants = [...(event.participants || []), user.email];
+        
+        await updateDoc(eventRef, {
+          participants: newParticipants
+        });
+
+        setEvents(prevEvents => prevEvents.map(e => 
+          e.id === event.id 
+            ? { ...e, participants: newParticipants }
+            : e
+        ));
+
+        Alert.alert('Success', 'You have successfully joined the event!');
+      } catch (error) {
+        console.error("Error joining event: ", error);
+        Alert.alert('Error', 'Failed to join event. Please try again.');
+      }
     }
   };
 
@@ -49,17 +140,38 @@ const Home = () => {
       )}
       <View style={styles.cardContent}>
         <Text style={styles.eventTitle}>{event.Event_Title}</Text>
-        <Text style={styles.eventDate}>{event.Date}</Text>
+        <Text style={styles.eventDate}>📅 {event.Date}</Text>
+        {event.Start_Time && event.End_Time && (
+          <Text style={styles.eventTime}>⏰ {event.Start_Time} - {event.End_Time}</Text>
+        )}
         <Text style={styles.eventLocation}>📍 {event.Location}</Text>
-        <Text style={styles.eventDescription} numberOfLines={2}>
+        {event.Category && (
+          <Text style={styles.eventCategory}>🏷️ {event.Category}</Text>
+        )}
+        {event.Organizer && (
+          <Text style={styles.eventOrganizer}>👤 Organized by: {event.Organizer}</Text>
+        )}
+        <Text style={styles.eventDescription}>
           {event.Description || 'No description available'}
         </Text>
         <View style={styles.cardFooter}>
           <Text style={styles.participants}>
-            👥 Max participants: {event.Max_Participants}
+            👥 Participants: {event.participants?.length || 0}/{event.Max_Participants}
           </Text>
-          <TouchableOpacity style={styles.joinButton}>
-            <Text style={styles.joinButtonText}>Join</Text>
+          <TouchableOpacity 
+            style={[
+              styles.joinButton,
+              event.participants?.includes(user?.email || '') && styles.joinedButton,
+              (event.participants?.length || 0) >= parseInt(event.Max_Participants) && 
+              !event.participants?.includes(user?.email || '') && styles.disabledButton
+            ]}
+            onPress={() => handleEventParticipation(event)}
+            disabled={(event.participants?.length || 0) >= parseInt(event.Max_Participants) && 
+                     !event.participants?.includes(user?.email || '')}
+          >
+            <Text style={styles.joinButtonText}>
+              {event.participants?.includes(user?.email || '') ? 'Leave' : 'Join'}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -168,6 +280,21 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 8,
   },
+  eventTime: {
+    fontSize: 14,
+    color: Colors.secondary,
+    marginBottom: 4,
+  },
+  eventCategory: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  eventOrganizer: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+  },
   eventDescription: {
     fontSize: 14,
     color: '#666',
@@ -198,6 +325,12 @@ const styles = StyleSheet.create({
     color: Colors.text,
     textAlign: 'center',
     marginTop: 20,
+  },
+  joinedButton: {
+    backgroundColor: Colors.secondary,
+  },
+  disabledButton: {
+    backgroundColor: '#cccccc',
   },
 });
 

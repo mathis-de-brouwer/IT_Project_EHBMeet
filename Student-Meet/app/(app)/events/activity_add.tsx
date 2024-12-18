@@ -152,7 +152,7 @@ export default function ActivityAddScreen() {
 }
 
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1, backgroundColor: '#f9f9f9', marginTop: 50, },
+  mainContainer: { flex: 1, backgroundColor: '#f9f9f9' },
   scrollContainer: { padding: 20 },
   titleInput: { fontSize: 20, borderBottomWidth: 1, borderColor: Colors.inputBorder, marginBottom: 10 },
   photoContainer: { alignItems: 'center', marginVertical: 10 },

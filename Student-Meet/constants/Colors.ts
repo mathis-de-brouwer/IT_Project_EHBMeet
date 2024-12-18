@@ -6,6 +6,8 @@ const Colors = {
   inputBackground: '#f1f2f6', // Lichtgrijze achtergrond voor invoervelden
   placeholder: '#b2bec3', // Placeholder-kleur
   text: '#2d3436', // Tekstkleur
+  success: '#4CAF50',  // green
+  error: '#F44336',    // red
 };
 
 export default Colors;
