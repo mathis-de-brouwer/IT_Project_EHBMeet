@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
+import React, { useEffect, useState, useContext } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import UserFooter from '../../components/footer';
 import Colors from '../../constants/Colors';
 import { db } from '../../firebase_backup.js';
-import { collection, getDocs } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { AuthContext } from '../../app/_layout';
 
 interface EventData {
   Event_Title: string;
@@ -18,10 +19,13 @@ interface EventData {
   End_Time?: string;
   Category?: string;
   Organizer?: string;
+  participants?: string[];
+  id?: string;
 }
 
 const Home = () => {
   const [events, setEvents] = useState<EventData[]>([]);
+  const { user } = useContext(AuthContext);
 
   useEffect(() => {
     fetchEvents();
@@ -32,7 +36,11 @@ const Home = () => {
     try {
       const eventsRef = collection(db, "Event");
       const querySnapshot = await getDocs(eventsRef);
-      const eventsData = querySnapshot.docs.map(doc => doc.data() as EventData);
+      const eventsData = querySnapshot.docs.map(doc => ({
+        ...doc.data(),
+        id: doc.id,
+        participants: doc.data().participants || []
+      } as EventData));
       setEvents(eventsData);
     } catch (error) {
       console.error("Error fetching events: ", error);
@@ -61,6 +69,41 @@ const Home = () => {
       });
     } catch (error) {
       console.error("Error testing event data: ", error);
+    }
+  };
+
+  const handleJoinEvent = async (event: EventData) => {
+    if (!user?.email || !event.id) return;
+
+    if (event.participants?.includes(user.email)) {
+      Alert.alert('Already Joined', 'You have already joined this event');
+      return;
+    }
+
+    const currentParticipants = event.participants?.length || 0;
+    if (currentParticipants >= parseInt(event.Max_Participants)) {
+      Alert.alert('Event Full', 'This event has reached its maximum participants');
+      return;
+    }
+
+    try {
+      const eventRef = doc(db, "Event", event.id);
+      const newParticipants = [...(event.participants || []), user.email];
+      
+      await updateDoc(eventRef, {
+        participants: newParticipants
+      });
+
+      setEvents(prevEvents => prevEvents.map(e => 
+        e.id === event.id 
+          ? { ...e, participants: newParticipants }
+          : e
+      ));
+
+      Alert.alert('Success', 'You have successfully joined the event!');
+    } catch (error) {
+      console.error("Error joining event: ", error);
+      Alert.alert('Error', 'Failed to join event. Please try again.');
     }
   };
 
@@ -95,10 +138,21 @@ const Home = () => {
         </Text>
         <View style={styles.cardFooter}>
           <Text style={styles.participants}>
-            👥 Max participants: {event.Max_Participants}
+            👥 Participants: {event.participants?.length || 0}/{event.Max_Participants}
           </Text>
-          <TouchableOpacity style={styles.joinButton}>
-            <Text style={styles.joinButtonText}>Join</Text>
+          <TouchableOpacity 
+            style={[
+              styles.joinButton,
+              event.participants?.includes(user?.email || '') && styles.joinedButton,
+              (event.participants?.length || 0) >= parseInt(event.Max_Participants) && styles.disabledButton
+            ]}
+            onPress={() => handleJoinEvent(event)}
+            disabled={event.participants?.includes(user?.email || '') || 
+                     (event.participants?.length || 0) >= parseInt(event.Max_Participants)}
+          >
+            <Text style={styles.joinButtonText}>
+              {event.participants?.includes(user?.email || '') ? 'Joined' : 'Join'}
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -252,6 +306,12 @@ const styles = StyleSheet.create({
     color: Colors.text,
     textAlign: 'center',
     marginTop: 20,
+  },
+  joinedButton: {
+    backgroundColor: Colors.secondary,
+  },
+  disabledButton: {
+    backgroundColor: '#cccccc',
   },
 });
 
