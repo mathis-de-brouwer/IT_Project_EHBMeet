@@ -50,7 +50,7 @@ export default function LoginScreen() {
         // Cast the Firestore data to UserData type
         signIn(userData as UserData);
         console.log('Login successful for user:', userDoc.id);
-        router.replace('/(app)/home');
+        router.replace('/home');
       } else {
         Alert.alert('Error', 'Incorrect password');
       }

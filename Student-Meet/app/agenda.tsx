@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import Header from '../../components/header';
-import UserFooter from '../../components/footer';
+import Header from '../components/header';
+import UserFooter from '../components/footer';
 
 const Agenda = () => {
   return (

@@ -1,17 +1,17 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import Header from '../../components/header';
-import UserFooter from '../../components/footer';
+import Header from '../components/header';
+import UserFooter from '../components/footer';
 
-const Agenda = () => {
+const MyProfile = () => {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <Header title="Agenda" />
+      <Header title="My Profile" />
 
       {/* Body */}
       <ScrollView contentContainerStyle={styles.body}>
-        <Text style={styles.text}>This is the Agenda Page</Text>
+        <Text style={styles.text}>This is the My Profile Page</Text>
       </ScrollView>
 
       {/* Footer */}
@@ -37,4 +37,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default Agenda;
+export default MyProfile;
