@@ -7,6 +7,7 @@ import Colors from '../../constants/Colors';
 import { db } from '../../firebase_backup.js';
 import { collection, getDocs, doc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { AuthContext } from '../../app/_layout';
+import Header from '../../components/header';
 
 interface EventData {
   Event_Title: string;
@@ -180,12 +181,7 @@ const Home = () => {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#44c9ea', 'white']} style={styles.header}>
-        <Text style={styles.title}>Student Meet</Text>
-        <TouchableOpacity>
-          <FontAwesome name="search" size={24} color="white" />
-        </TouchableOpacity>
-      </LinearGradient>
+          <Header title="Home" />
 
       <ScrollView 
         contentContainerStyle={styles.body}
