@@ -1,50 +1,59 @@
 import React from 'react';
 import { View, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
-
-type RootStackParamList = {
-  home: undefined;
-  agenda: undefined;
-  activity_add: undefined;
-  MyProfile: undefined;
-};
-
-type NavigationProp = BottomTabNavigationProp<RootStackParamList>;
+import { useRouter, usePathname } from 'expo-router';
 
 const UserFooter = () => {
-  const navigation = useNavigation<NavigationProp>(); // Use navigation with the correct type
+  const router = useRouter();
+  const currentPath = usePathname();
+
+  const isActive = (path: string) => currentPath.includes(path);
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.footerContainer}>
         <TouchableOpacity
           style={styles.iconContainer}
-          onPress={() => navigation.navigate('home')}
+          onPress={() => router.push('/(app)/home')}
         >
-          <Ionicons name="home-outline" size={35} color="#00bfa5" />
+          <Ionicons 
+            name={isActive('home') ? 'home' : 'home-outline'} 
+            size={35} 
+            color={isActive('home') ? '#00bfa5' : '#666'} 
+          />
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.iconContainer}
-          onPress={() => navigation.navigate('agenda')}
+          onPress={() => router.push('/(app)/agenda')}
         >
-          <Ionicons name="calendar-outline" size={35} color="#00bfa5" />
+          <Ionicons 
+            name={isActive('agenda') ? 'calendar' : 'calendar-outline'} 
+            size={35} 
+            color={isActive('agenda') ? '#00bfa5' : '#666'} 
+          />
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.iconContainer}
-          onPress={() => navigation.navigate('activity_add')}
+          onPress={() => router.push('/(app)/events/activity_add')}
         >
-          <Ionicons name="add-circle-outline" size={35} color="#00bfa5" />
+          <Ionicons 
+            name={isActive('activity_add') ? 'add-circle' : 'add-circle-outline'} 
+            size={35} 
+            color={isActive('activity_add') ? '#00bfa5' : '#666'} 
+          />
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.iconContainer}
-          onPress={() => navigation.navigate('MyProfile')}
+          onPress={() => router.push('/(app)/profile/MyProfile')}
         >
-          <Ionicons name="person-outline" size={35} color="#00bfa5" />
+          <Ionicons 
+            name={isActive('profile') ? 'person' : 'person-outline'} 
+            size={35} 
+            color={isActive('profile') ? '#00bfa5' : '#666'} 
+          />
         </TouchableOpacity>
       </View>
     </SafeAreaView>

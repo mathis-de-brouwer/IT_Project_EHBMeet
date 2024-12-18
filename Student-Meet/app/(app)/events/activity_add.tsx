@@ -6,6 +6,8 @@ import { collection, addDoc } from 'firebase/firestore';
 import Colors from '../../../constants/Colors';
 import { AuthContext } from '../../_layout';
 import UserFooter from '../../../components/footer';
+import { Picker } from '@react-native-picker/picker';
+import { EventCategory } from '../../types/event';
 
 interface EventData {
   Category_id: string;
@@ -118,13 +120,21 @@ export default function ActivityAddScreen() {
           keyboardType="numeric"
         />
 
-        <TextInput
-          style={styles.input}
-          placeholder="Category ID"
-          placeholderTextColor={Colors.placeholder}
-          value={eventData.Category_id}
-          onChangeText={(text) => setEventData({...eventData, Category_id: text})}
-        />
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={eventData.Category_id as EventCategory}
+            onValueChange={(value: EventCategory) => 
+              setEventData({...eventData, Category_id: value})
+            }
+            style={styles.picker}
+          >
+            <Picker.Item label="Select Category *" value="" />
+            <Picker.Item label="Games" value="games" />
+            <Picker.Item label="Sport" value="sport" />
+            <Picker.Item label="EHB Events" value="ehb-events" />
+            <Picker.Item label="Creativity" value="creativity" />
+          </Picker>
+        </View>
 
         <TextInput
           style={styles.input}
@@ -197,5 +207,16 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
+    borderRadius: 8,
+    marginBottom: 15,
+    backgroundColor: Colors.inputBackground,
+  },
+  picker: {
+    height: 50,
+    width: '100%',
   },
 }); 

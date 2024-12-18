@@ -2,9 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import UserFooter from '../components/footer';
-import Colors from '../constants/Colors';
-import { db } from '../firebase_backup.js';
+import UserFooter from '../../components/footer';
+import Colors from '../../constants/Colors';
+import { db } from '../../firebase_backup.js';
 import { collection, getDocs } from 'firebase/firestore';
 
 interface EventData {
@@ -40,7 +40,7 @@ const Home = () => {
         <Image 
           source={{ uri: event.Event_picture }} 
           style={styles.eventImage}
-          defaultSource={require('../assets/images/placeholder.png')}
+          defaultSource={require('../../assets/images/placeholder.png')}
         />
       ) : (
         <View style={styles.placeholderImage}>
