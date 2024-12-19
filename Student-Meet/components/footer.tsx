@@ -10,17 +10,15 @@ const UserFooter = () => {
   const isActive = (path: string) => currentPath.includes(path);
 
   const navigate = (path: string) => {
-    if (isActive(path)) return;
     router.replace(path as any);
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.footerContainer}>
-        <TouchableOpacity 
-          style={[styles.iconContainer, isActive('home') && styles.activeIcon]}
+        <TouchableOpacity
+          style={styles.iconContainer}
           onPress={() => navigate('/(app)/home')}
-          disabled={isActive('home')}
         >
           <Ionicons 
             name={isActive('home') ? 'home' : 'home-outline'} 
@@ -29,10 +27,9 @@ const UserFooter = () => {
           />
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={[styles.iconContainer, isActive('agenda') && styles.activeIcon]}
+        <TouchableOpacity
+          style={styles.iconContainer}
           onPress={() => navigate('/(app)/agenda')}
-          disabled={isActive('agenda')}
         >
           <Ionicons 
             name={isActive('agenda') ? 'calendar' : 'calendar-outline'} 
@@ -41,10 +38,9 @@ const UserFooter = () => {
           />
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={[styles.iconContainer, isActive('activity_add') && styles.activeIcon]}
+        <TouchableOpacity
+          style={styles.iconContainer}
           onPress={() => navigate('/(app)/events/activity_add')}
-          disabled={isActive('activity_add')}
         >
           <Ionicons 
             name={isActive('activity_add') ? 'add-circle' : 'add-circle-outline'} 
@@ -53,10 +49,9 @@ const UserFooter = () => {
           />
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={[styles.iconContainer, isActive('profile') && styles.activeIcon]}
+        <TouchableOpacity
+          style={styles.iconContainer}
           onPress={() => navigate('/(app)/profile/MyProfile')}
-          disabled={isActive('profile')}
         >
           <Ionicons 
             name={isActive('profile') ? 'person' : 'person-outline'} 
@@ -86,9 +81,6 @@ const styles = StyleSheet.create({
   },
   iconContainer: {
     padding: 15,
-  },
-  activeIcon: {
-    opacity: 0.8,
   },
 });
 

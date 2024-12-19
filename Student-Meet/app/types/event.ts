@@ -16,8 +16,3 @@ export interface EventData {
   participants?: string[];
   status?: EventStatus;
 } 
-
-// Add default export
-export default function Event() {
-  return null;
-} 

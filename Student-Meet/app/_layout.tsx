@@ -23,23 +23,11 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const storedUserData = await AsyncStorage.getItem('userData');
         if (storedUserData) {
-          // Add timestamp check for session expiry (24 hours)
-          const lastLoginTime = await AsyncStorage.getItem('lastLoginTime');
-          const currentTime = new Date().getTime();
-          
-          if (lastLoginTime && (currentTime - parseInt(lastLoginTime)) > 24 * 60 * 60 * 1000) {
-            // Session expired, clear storage
-            await AsyncStorage.multiRemove(['userData', 'lastLoginTime']);
-            setUser(null);
-            return;
-          }
-          
           const userData = JSON.parse(storedUserData);
           setUser(userData);
         }
       } catch (error) {
         console.error("Error reading stored user data:", error);
-        setUser(null);
       }
     };
 
@@ -57,8 +45,6 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (userData: UserData) => {
     try {
       await AsyncStorage.setItem('userData', JSON.stringify(userData));
-      // Store login timestamp
-      await AsyncStorage.setItem('lastLoginTime', new Date().getTime().toString());
       setUser(userData);
     } catch (error) {
       console.error("Error storing user data:", error);
@@ -67,7 +53,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      await AsyncStorage.multiRemove(['userData', 'lastLoginTime']);
+      await AsyncStorage.removeItem('userData');
       setUser(null);
     } catch (error) {
       console.error("Error clearing stored user data:", error);
