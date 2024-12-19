@@ -2,14 +2,13 @@ import React, { useState, useContext } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import Colors from '../../constants/Colors';
 import { useRouter } from 'expo-router';
-import { db } from '../../firebase_backup.js';
+import { db, auth } from '../../firebase_backup';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import CryptoJS from 'crypto-js';
 import { AuthContext } from '../_layout';
 import { UserData } from '../../app/types/user';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { auth } from '../../firebase_backup';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -23,10 +22,18 @@ export default function LoginScreen() {
       return;
     }
 
+    // Email validation
+    const validDomains = ['@ehb.be', '@student.ehb.be'];
+    const emailLower = email.toLowerCase();
+    const isValidDomain = validDomains.some(domain => emailLower.endsWith(domain));
+
+    if (!isValidDomain) {
+      Alert.alert('Error', 'Please use your EHB email address');
+      return;
+    }
+
     try {
-      const emailLower = email.toLowerCase();
-      
-      // Check if user exists in Firestore first
+      // First get the user data from Firestore to verify the account exists
       const usersRef = collection(db, "Users");
       const q = query(usersRef, where("email", "==", emailLower));
       const querySnapshot = await getDocs(q);
@@ -36,16 +43,18 @@ export default function LoginScreen() {
         return;
       }
 
-      // Then try Firebase Auth
+      // Then attempt Firebase Auth login
       const userCredential = await signInWithEmailAndPassword(auth, emailLower, password);
       
       const userDoc = querySnapshot.docs[0];
-      const userData = { ...userDoc.data(), User_ID: userDoc.id };
+      const userData = userDoc.data();
 
+      // Store user data and login time
       await AsyncStorage.setItem('userData', JSON.stringify(userData));
+      await AsyncStorage.setItem('lastLoginTime', new Date().getTime().toString());
+      
       signIn(userData as UserData);
-      router.replace('/(app)/home');
-
+      router.replace('/home');
     } catch (error: any) {
       console.error("Login error:", error);
       if (error.code === 'auth/invalid-credential') {

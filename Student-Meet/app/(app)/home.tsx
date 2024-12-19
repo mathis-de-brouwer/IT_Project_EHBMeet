@@ -4,7 +4,7 @@ import { FontAwesome } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import UserFooter from '../../components/footer';
 import Colors from '../../constants/Colors';
-import { db } from '../../firebase_backup.js';
+import { db } from '../../firebase_backup';
 import { collection, getDocs, doc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { AuthContext } from '../../app/_layout';
 import EventCard from '../../components/EventCard';

@@ -8,6 +8,7 @@ const Colors = {
   text: '#2d3436', // Tekstkleur
   success: '#4CAF50',  // green
   error: '#F44336',    // red
+  lightPrimary: '#e3f2fd',
 };
 
 export default Colors;

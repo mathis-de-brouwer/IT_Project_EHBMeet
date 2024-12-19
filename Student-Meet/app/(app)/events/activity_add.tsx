@@ -1,8 +1,8 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { db } from '../../../firebase_backup';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, getDoc } from 'firebase/firestore';
 import Colors from '../../../constants/Colors';
 import { AuthContext } from '../../_layout';
 import UserFooter from '../../../components/footer';
@@ -20,12 +20,15 @@ interface EventData {
   Max_Participants: string;
   Phone_Number?: string;
   User_ID: string;
+  participants?: string[];
 }
 
 export default function ActivityAddScreen() {
   const router = useRouter();
   const { user } = useContext(AuthContext);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [event, setEvent] = useState<EventData | null>(null);
+  const { eventId } = useLocalSearchParams();
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [date, setDate] = useState(new Date());
   
@@ -42,6 +45,26 @@ export default function ActivityAddScreen() {
   };
   
   const [eventData, setEventData] = useState<EventData>(initialEventData);
+
+  useEffect(() => {
+    const fetchEvent = async () => {
+      if (!eventId) return;
+      
+      try {
+        const eventDoc = await getDoc(doc(db, 'Event', eventId as string));
+        if (eventDoc.exists()) {
+          const eventData = eventDoc.data() as EventData;
+          setEvent(eventData);
+          setEventData(eventData); // Pre-fill form with existing data
+        }
+      } catch (error) {
+        console.error('Error fetching event:', error);
+        Alert.alert('Error', 'Failed to load event data');
+      }
+    };
+
+    fetchEvent();
+  }, [eventId]);
 
   const resetForm = () => {
     setEventData(initialEventData);
@@ -97,10 +120,48 @@ export default function ActivityAddScreen() {
     }
   };
 
+  const handleEditEvent = async () => {
+    if (!eventId || !event || !user) return;
+    
+    try {
+      const eventRef = doc(db, 'Event', eventId as string);
+      const updateData = { ...eventData }; // Convert to plain object
+      await updateDoc(eventRef, updateData);
+
+      // Create edit notification for all participants
+      const participants = event.participants ?? [];
+      if (participants.length > 0) {
+        const notificationPromises = participants.map(participantId => {
+          if (participantId === user.User_ID) return null;
+
+          return addDoc(collection(db, 'Notifications'), {
+            type: 'event_edited',
+            userId: participantId,
+            userName: user.email,
+            eventId: eventId.toString(),
+            eventTitle: eventData.Event_Title,
+            createdAt: new Date().toISOString(),
+            read: false
+          });
+        });
+
+        await Promise.all(notificationPromises.filter(Boolean));
+      }
+
+      Alert.alert('Success', 'Event updated successfully!');
+      router.back();
+    } catch (error) {
+      console.error('Error updating event:', error);
+      Alert.alert('Error', 'Failed to update event');
+    }
+  };
+
+  const title = eventId ? 'Edit Event' : 'Create New Event';
+
   return (
     <View style={styles.mainContainer}>
       <ScrollView style={styles.container}>
-        <Text style={styles.title}>Create New Event</Text>
+        <Text style={styles.title}>{title}</Text>
         
         <TextInput
           style={styles.input}
