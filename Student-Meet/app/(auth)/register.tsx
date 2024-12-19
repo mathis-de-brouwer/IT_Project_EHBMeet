@@ -23,77 +23,29 @@ export default function RegisterScreen() {
 
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  const [passwordStrength, setPasswordStrength] = useState({
-    length: false,
-    hasUpper: false,
-    hasLower: false,
-    hasNumber: false,
-    hasSpecial: false
-  });
-
-  const [isRegistering, setIsRegistering] = useState(false);
-
-  const checkPasswordStrength = (password: string) => {
-    setPasswordStrength({
-      length: password.length >= 8,
-      hasUpper: /[A-Z]/.test(password),
-      hasLower: /[a-z]/.test(password),
-      hasNumber: /[0-9]/.test(password),
-      hasSpecial: /[@$!%*?&]/.test(password)
-    });
-  };
-
   const handleRegister = async () => {
-    if (isRegistering) return; // Prevent multiple submissions
-    setIsRegistering(true);
+    // Validate required fields
+    if (!userData.First_Name || !userData.Second_name || !userData.email || !userData.Password) {
+      Alert.alert('Error', 'Please fill in all required fields');
+      return;
+    }
+
+    // Add email validation for multiple domains
+    const validDomains = ['@ehb.be', '@student.ehb.be'];
+    const emailLower = userData.email.toLowerCase();
+    const isValidDomain = validDomains.some(domain => emailLower.endsWith(domain));
+
+    if (!isValidDomain) {
+      Alert.alert('Error', 'Please use your EHB email address');
+      return;
+    }
+
+    if (userData.Password !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
 
     try {
-      // Validate required fields
-      if (!userData.First_Name || !userData.Second_name || !userData.email || !userData.Password || !confirmPassword) {
-        Alert.alert('Error', 'Please fill in all required fields');
-        setIsRegistering(false);
-        return;
-      }
-
-      // Password validation
-      if (userData.Password.length < 8) {
-        Alert.alert('Error', 'Password must be at least 8 characters long');
-        setIsRegistering(false);
-        return;
-      }
-
-      if (userData.Password !== confirmPassword) {
-        Alert.alert('Error', 'Passwords do not match');
-        setIsRegistering(false);
-        return;
-      }
-
-      // Password strength validation
-      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-      if (!passwordRegex.test(userData.Password)) {
-        Alert.alert('Error', 
-          'Password must contain at least:\n' +
-          '- 8 characters\n' +
-          '- One uppercase letter\n' +
-          '- One lowercase letter\n' +
-          '- One number\n' +
-          '- One special character'
-        );
-        setIsRegistering(false);
-        return;
-      }
-
-      // Add email validation for multiple domains
-      const validDomains = ['@ehb.be', '@student.ehb.be'];
-      const emailLower = userData.email.toLowerCase();
-      const isValidDomain = validDomains.some(domain => emailLower.endsWith(domain));
-
-      if (!isValidDomain) {
-        Alert.alert('Error', 'Please use your EHB email address');
-        setIsRegistering(false);
-        return;
-      }
-
       // Check if email already exists
       const usersRef = collection(db, "Users");
       const q = query(usersRef, where("email", "==", userData.email.toLowerCase()));
@@ -101,7 +53,6 @@ export default function RegisterScreen() {
 
       if (!querySnapshot.empty) {
         Alert.alert('Error', 'An account with this email already exists');
-        setIsRegistering(false);
         return;
       }
 
@@ -125,15 +76,14 @@ export default function RegisterScreen() {
 
       if (docSnap.exists()) {
         Alert.alert('Error', 'A user with this name combination already exists');
-        setIsRegistering(false);
         return;
       }
 
       // Create user document with hashed password
       const { User_ID, Password, ...userDataWithoutSensitive } = userData;
-      const userDocRef = await setDoc(docRef, {
+      await setDoc(docRef, {
         ...userDataWithoutSensitive,
-        Password: hashedPassword,
+        Password: hashedPassword, // Store hashed password instead of plain text
         email: userData.email.toLowerCase(),
         User_ID: uniqueUserId
       });
@@ -145,8 +95,6 @@ export default function RegisterScreen() {
     } catch (error) {
       console.error("Error registering user: ", error);
       Alert.alert('Error', 'Registration failed. Please try again.');
-    } finally {
-      setIsRegistering(false);
     }
   };
 
@@ -183,44 +131,9 @@ export default function RegisterScreen() {
         placeholder="Password *"
         placeholderTextColor={Colors.placeholder}
         value={userData.Password}
-        onChangeText={(text) => {
-          setUserData({...userData, Password: text});
-          checkPasswordStrength(text);
-        }}
+        onChangeText={(text) => setUserData({...userData, Password: text})}
         secureTextEntry
       />
-      <View style={styles.passwordChecklist}>
-        <Text style={[
-          styles.requirementText,
-          { color: passwordStrength.length ? Colors.success : Colors.error }
-        ]}>
-          • Minimum 8 characters {passwordStrength.length ? '✓' : ''}
-        </Text>
-        <Text style={[
-          styles.requirementText,
-          { color: passwordStrength.hasUpper ? Colors.success : Colors.error }
-        ]}>
-          • At least one uppercase letter {passwordStrength.hasUpper ? '✓' : ''}
-        </Text>
-        <Text style={[
-          styles.requirementText,
-          { color: passwordStrength.hasLower ? Colors.success : Colors.error }
-        ]}>
-          • At least one lowercase letter {passwordStrength.hasLower ? '✓' : ''}
-        </Text>
-        <Text style={[
-          styles.requirementText,
-          { color: passwordStrength.hasNumber ? Colors.success : Colors.error }
-        ]}>
-          • At least one number {passwordStrength.hasNumber ? '✓' : ''}
-        </Text>
-        <Text style={[
-          styles.requirementText,
-          { color: passwordStrength.hasSpecial ? Colors.success : Colors.error }
-        ]}>
-          • At least one special character (@$!%*?&) {passwordStrength.hasSpecial ? '✓' : ''}
-        </Text>
-      </View>
       <TextInput
         style={styles.input}
         placeholder="Confirm Password *"
@@ -229,17 +142,8 @@ export default function RegisterScreen() {
         onChangeText={(text) => setConfirmPassword(text)}
         secureTextEntry
       />
-      <TouchableOpacity 
-        style={[
-          styles.buttonPrimary,
-          isRegistering && styles.buttonDisabled
-        ]} 
-        onPress={handleRegister}
-        disabled={isRegistering}
-      >
-        <Text style={styles.buttonText}>
-          {isRegistering ? 'Registering...' : 'Register'}
-        </Text>
+      <TouchableOpacity style={styles.buttonPrimary} onPress={handleRegister}>
+        <Text style={styles.buttonText}>Register</Text>
       </TouchableOpacity>
     </View>
   );
@@ -298,20 +202,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  passwordChecklist: {
-    width: '90%',
-    marginBottom: 15,
-    paddingHorizontal: 15,
-  },
-  requirementText: {
-    fontSize: 12,
-    fontFamily: 'Poppins',
-    marginBottom: 2,
-  },
-  buttonDisabled: {
-    backgroundColor: Colors.placeholder,
-    opacity: 0.7,
   },
 });
 

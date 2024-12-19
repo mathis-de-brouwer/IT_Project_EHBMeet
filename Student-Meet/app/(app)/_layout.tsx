@@ -1,8 +1,8 @@
-import React from 'react';
 import { Stack } from 'expo-router';
 
 export default function AppLayout() {
   return (
+<<<<<<< HEAD
     <Stack 
       screenOptions={{ 
         headerShown: false,
@@ -14,3 +14,12 @@ export default function AppLayout() {
     />
   );
 } 
+=======
+    <Stack
+      screenOptions={{
+        headerShown: false, // Verberg de standaard header voor alle pagina's
+      }}
+    />
+  );
+}
+>>>>>>> parent of 7aecca93 (Merge branch 'main' into Frond_end)

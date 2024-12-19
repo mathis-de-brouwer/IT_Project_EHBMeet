@@ -173,6 +173,7 @@ export default function ActivityAddScreen() {
 }
 
 const styles = StyleSheet.create({
+<<<<<<< HEAD
   mainContainer: {
     flex: 1,
     backgroundColor: Colors.background,
@@ -232,3 +233,21 @@ const styles = StyleSheet.create({
     width: '100%',
   },
 }); 
+=======
+  mainContainer: { flex: 1, backgroundColor: '#f9f9f9', marginTop: 50, },
+  scrollContainer: { padding: 20 },
+  titleInput: { fontSize: 20, borderBottomWidth: 1, borderColor: Colors.inputBorder, marginBottom: 10 },
+  photoContainer: { alignItems: 'center', marginVertical: 10 },
+  photoBox: { width: 150, height: 150, backgroundColor: Colors.inputBackground, justifyContent: 'center', alignItems: 'center' },
+  photoText: { color: Colors.placeholder },
+  description: { height: 100, textAlignVertical: 'top', borderWidth: 1, borderColor: Colors.inputBorder, marginBottom: 10, padding: 10 },
+  detailsContainer: { marginBottom: 10 },
+  detailsInput: { borderWidth: 1, borderColor: Colors.inputBorder, padding: 10, marginBottom: 10, borderRadius: 5 },
+  categoryTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
+  categoryContainer: { flexDirection: 'row', justifyContent: 'space-between' },
+  categoryBox: { alignItems: 'center', flex: 1 },
+  categoryText: { marginTop: 5, color: Colors.text },
+  button: { backgroundColor: Colors.primary, paddingVertical: 15, borderRadius: 8, alignItems: 'center', marginTop: 10 },
+  buttonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+});
+>>>>>>> parent of 7aecca93 (Merge branch 'main' into Frond_end)

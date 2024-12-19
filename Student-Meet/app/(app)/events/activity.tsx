@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -329,3 +330,5 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
 });
+=======
+>>>>>>> parent of 7aecca93 (Merge branch 'main' into Frond_end)
