@@ -8,6 +8,7 @@ import { AuthContext } from '../../_layout';
 import UserFooter from '../../../components/footer';
 import { Picker } from '@react-native-picker/picker';
 import { EventCategory } from '../../types/event';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 interface EventData {
   Category_id: string;
@@ -25,6 +26,8 @@ export default function ActivityAddScreen() {
   const router = useRouter();
   const { user } = useContext(AuthContext);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [date, setDate] = useState(new Date());
   
   const initialEventData = {
     Category_id: '',
@@ -42,6 +45,16 @@ export default function ActivityAddScreen() {
 
   const resetForm = () => {
     setEventData(initialEventData);
+  };
+
+  const onDateChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    if (selectedDate) {
+      setDate(selectedDate);
+      // Format date for database
+      const formattedDate = selectedDate.toISOString().split('T')[0];
+      setEventData({ ...eventData, Date: formattedDate });
+    }
   };
 
   const handleCreateEvent = async () => {
@@ -97,13 +110,23 @@ export default function ActivityAddScreen() {
           onChangeText={(text) => setEventData({...eventData, Event_Title: text})}
         />
 
-        <TextInput
+        <TouchableOpacity 
           style={styles.input}
-          placeholder="Date (YYYY-MM-DD) *"
-          placeholderTextColor={Colors.placeholder}
-          value={eventData.Date}
-          onChangeText={(text) => setEventData({...eventData, Date: text})}
-        />
+          onPress={() => setShowDatePicker(true)}
+        >
+          <Text style={[styles.inputText, !eventData.Date && styles.placeholder]}>
+            {eventData.Date || 'Select Date *'}
+          </Text>
+        </TouchableOpacity>
+
+        {showDatePicker && (
+          <DateTimePicker
+            value={date}
+            mode="date"
+            onChange={onDateChange}
+            minimumDate={new Date()}
+          />
+        )}
 
         <TextInput
           style={styles.input}
@@ -173,7 +196,6 @@ export default function ActivityAddScreen() {
 }
 
 const styles = StyleSheet.create({
-<<<<<<< HEAD
   mainContainer: {
     flex: 1,
     backgroundColor: Colors.background,
@@ -232,22 +254,11 @@ const styles = StyleSheet.create({
     height: 50,
     width: '100%',
   },
+  inputText: {
+    fontSize: 16,
+    color: Colors.text,
+  },
+  placeholder: {
+    color: Colors.placeholder,
+  },
 }); 
-=======
-  mainContainer: { flex: 1, backgroundColor: '#f9f9f9', marginTop: 50, },
-  scrollContainer: { padding: 20 },
-  titleInput: { fontSize: 20, borderBottomWidth: 1, borderColor: Colors.inputBorder, marginBottom: 10 },
-  photoContainer: { alignItems: 'center', marginVertical: 10 },
-  photoBox: { width: 150, height: 150, backgroundColor: Colors.inputBackground, justifyContent: 'center', alignItems: 'center' },
-  photoText: { color: Colors.placeholder },
-  description: { height: 100, textAlignVertical: 'top', borderWidth: 1, borderColor: Colors.inputBorder, marginBottom: 10, padding: 10 },
-  detailsContainer: { marginBottom: 10 },
-  detailsInput: { borderWidth: 1, borderColor: Colors.inputBorder, padding: 10, marginBottom: 10, borderRadius: 5 },
-  categoryTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
-  categoryContainer: { flexDirection: 'row', justifyContent: 'space-between' },
-  categoryBox: { alignItems: 'center', flex: 1 },
-  categoryText: { marginTop: 5, color: Colors.text },
-  button: { backgroundColor: Colors.primary, paddingVertical: 15, borderRadius: 8, alignItems: 'center', marginTop: 10 },
-  buttonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-});
->>>>>>> parent of 7aecca93 (Merge branch 'main' into Frond_end)
