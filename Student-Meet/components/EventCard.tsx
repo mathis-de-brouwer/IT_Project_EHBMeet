@@ -1,9 +1,13 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { EventData } from '../app/types/event';
 import Colors from '../constants/Colors';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { doc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
+import { db } from '../firebase_backup';
+import { useContext } from 'react';
+import { AuthContext } from '../app/_layout';
 
 interface EventCardProps {
   event: EventData;
@@ -11,18 +15,68 @@ interface EventCardProps {
 
 const EventCard = ({ event }: EventCardProps) => {
   const router = useRouter();
-  const participantCount = event.participants?.length || 0;
+  const { user } = useContext(AuthContext);
+  const [isJoining, setIsJoining] = useState(false);
+  const [hasJoined, setHasJoined] = useState(event.participants?.includes(user?.User_ID || '') || false);
+  const [participantCount, setParticipantCount] = useState(event.participants?.length || 0);
   const isFull = participantCount >= parseInt(event.Max_Participants);
 
-  const handlePress = () => {
-    router.push({
-      pathname: '/events/activity',
-      params: { eventId: event.id }
-    });
+  const handleJoinEvent = async (e: any) => {
+    e.stopPropagation(); // Prevent navigation to details
+    if (!event || !user || isJoining) return;
+    setIsJoining(true);
+
+    try {
+      const eventRef = doc(db, 'Event', event.id);
+      await updateDoc(eventRef, {
+        participants: arrayUnion(user.User_ID)
+      });
+
+      setHasJoined(true);
+      setParticipantCount(prev => prev + 1);
+      Alert.alert('Success', 'You have joined the event!');
+    } catch (error) {
+      console.error('Error joining event:', error);
+      Alert.alert('Error', 'Failed to join event');
+    } finally {
+      setIsJoining(false);
+    }
+  };
+
+  const handleLeaveEvent = async (e: any) => {
+    e.stopPropagation(); // Prevent navigation to details
+    if (!event || !user || isJoining) return;
+    setIsJoining(true);
+
+    try {
+      const eventRef = doc(db, 'Event', event.id);
+      const eventDoc = await getDoc(eventRef);
+      const currentEvent = eventDoc.data();
+      const newParticipants = currentEvent?.participants.filter((id: string) => id !== user.User_ID) || [];
+      
+      await updateDoc(eventRef, {
+        participants: newParticipants
+      });
+
+      setHasJoined(false);
+      setParticipantCount(prev => prev - 1);
+      Alert.alert('Success', 'You have left the event');
+    } catch (error) {
+      console.error('Error leaving event:', error);
+      Alert.alert('Error', 'Failed to leave event');
+    } finally {
+      setIsJoining(false);
+    }
   };
 
   return (
-    <TouchableOpacity onPress={handlePress}>
+    <TouchableOpacity 
+      onPress={() => router.push({
+        pathname: '/events/activity' as any,
+        params: { eventId: event.id }
+      })}
+      activeOpacity={0.7}
+    >
       <View style={styles.card}>
         <View style={styles.cardContent}>
           <Text style={styles.eventTitle}>{event.Event_Title}</Text>
@@ -36,11 +90,26 @@ const EventCard = ({ event }: EventCardProps) => {
               <FontAwesome name="users" size={16} color="#666" /> 
               {participantCount}/{event.Max_Participants}
             </Text>
-            <View style={styles.statusContainer}>
-              <Text style={[styles.status, styles[event.status || (isFull ? 'full' : 'open')]]}>
-                {isFull ? 'FULL' : 'OPEN'}
-              </Text>
-            </View>
+            
+            {hasJoined ? (
+              <TouchableOpacity 
+                style={[styles.leaveButton, isJoining && styles.buttonDisabled]}
+                onPress={handleLeaveEvent}
+                disabled={isJoining}
+              >
+                <Text style={styles.buttonText}>Leave</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity 
+                style={[styles.joinButton, (isJoining || isFull) && styles.buttonDisabled]}
+                onPress={handleJoinEvent}
+                disabled={isJoining || isFull}
+              >
+                <Text style={styles.buttonText}>
+                  {isFull ? 'Full' : 'Join'}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </View>
@@ -121,6 +190,20 @@ const styles = StyleSheet.create({
   },
   cancelled: {
     color: Colors.placeholder,
+  },
+  leaveButton: {
+    backgroundColor: Colors.error,
+    paddingHorizontal: 15,
+    paddingVertical: 6,
+    borderRadius: 15,
+  },
+  buttonDisabled: {
+    opacity: 0.5,
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
 
