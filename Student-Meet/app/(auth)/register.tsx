@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import Colors from '../../constants/Colors';
+import Colors from '../../constants/Colors'; // Your color definitions
 import { useRouter } from 'expo-router';
-import { db } from '../../firebase_backup.js';
-import { collection, addDoc, doc, setDoc, getDoc, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../../firebase_backup'; // Import the Firebase instance
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { getAuth } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 import CryptoJS from 'crypto-js';
 
 export default function RegisterScreen() {
@@ -13,16 +15,9 @@ export default function RegisterScreen() {
     Second_name: '',
     email: '',
     Password: '',
-    User_ID: '',
-    Blacklisted: false,
-    Description: '',
-    Discord_name: '',
-    Profile_Picture: '',
-    Steam_name: '',
   });
 
   const [confirmPassword, setConfirmPassword] = useState('');
-
   const [passwordStrength, setPasswordStrength] = useState({
     length: false,
     hasUpper: false,
@@ -30,10 +25,9 @@ export default function RegisterScreen() {
     hasNumber: false,
     hasSpecial: false
   });
-
   const [isRegistering, setIsRegistering] = useState(false);
 
-  const checkPasswordStrength = (password: string) => {
+  const checkPasswordStrength = (password: any) => {
     setPasswordStrength({
       length: password.length >= 8,
       hasUpper: /[A-Z]/.test(password),
@@ -83,7 +77,7 @@ export default function RegisterScreen() {
         return;
       }
 
-      // Add email validation for multiple domains
+      // Add email validation for specific domains
       const validDomains = ['@ehb.be', '@student.ehb.be'];
       const emailLower = userData.email.toLowerCase();
       const isValidDomain = validDomains.some(domain => emailLower.endsWith(domain));
@@ -94,51 +88,29 @@ export default function RegisterScreen() {
         return;
       }
 
-      // Check if email already exists
-      const usersRef = collection(db, "Users");
-      const q = query(usersRef, where("email", "==", userData.email.toLowerCase()));
-      const querySnapshot = await getDocs(q);
+      // Create user with Firebase Authentication
+      const auth = getAuth();
+      const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.Password);
+      const user = userCredential.user; // Firebase user object
 
-      if (!querySnapshot.empty) {
-        Alert.alert('Error', 'An account with this email already exists');
-        setIsRegistering(false);
-        return;
-      }
-
-      // Hash the password
+      // Hash the password before storing it in Firestore (if needed)
       const hashedPassword = CryptoJS.SHA256(userData.Password).toString();
 
-      // Generate unique User_ID
-      const timestamp = Date.now();
-      const randomNum = Math.floor(Math.random() * 1000);
-      const uniqueUserId = `${timestamp}${randomNum}`;
-
-      // Create document ID from name
-      const customDocId = `${userData.First_Name.toLowerCase()}.${userData.Second_name.toLowerCase()}`
-        .replace(/\s+/g, '')
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9.]/g, '');
-
-      // Check if document with this name combination already exists
-      const docRef = doc(db, "Users", customDocId);
-      const docSnap = await getDoc(docRef);
-
-      if (docSnap.exists()) {
-        Alert.alert('Error', 'A user with this name combination already exists');
-        setIsRegistering(false);
-        return;
-      }
-
-      // Create user document with hashed password
-      const { User_ID, Password, ...userDataWithoutSensitive } = userData;
-      const userDocRef = await setDoc(docRef, {
-        ...userDataWithoutSensitive,
-        Password: hashedPassword,
+      // Create user document in Firestore using the `user.uid` as the document ID
+      await setDoc(doc(db, "Users", user.uid), {
+        USER_ID: user.uid, // Add the user ID explicitly in the document
+        First_Name: userData.First_Name,
+        Second_name: userData.Second_name,
         email: userData.email.toLowerCase(),
-        User_ID: uniqueUserId
+        Password: hashedPassword,  // Store the hashed password
+        Blacklisted: false,
+        Description: '',
+        Discord_name: '',
+        Profile_Picture: '',
+        Steam_name: '',
       });
 
-      console.log("User registered with Doc ID: ", customDocId);
+      console.log("User registered and added to Firestore with UID:", user.uid);
       Alert.alert('Success', 'Registration successful!', [
         { text: 'OK', onPress: () => router.push('/(auth)/login') }
       ]);
@@ -161,21 +133,21 @@ export default function RegisterScreen() {
         placeholder="First Name *"
         placeholderTextColor={Colors.placeholder}
         value={userData.First_Name}
-        onChangeText={(text) => setUserData({...userData, First_Name: text})}
+        onChangeText={(text) => setUserData({ ...userData, First_Name: text })}
       />
       <TextInput
         style={styles.input}
         placeholder="Last Name *"
         placeholderTextColor={Colors.placeholder}
         value={userData.Second_name}
-        onChangeText={(text) => setUserData({...userData, Second_name: text})}
+        onChangeText={(text) => setUserData({ ...userData, Second_name: text })}
       />
       <TextInput
         style={styles.input}
         placeholder="Email *"
         placeholderTextColor={Colors.placeholder}
         value={userData.email}
-        onChangeText={(text) => setUserData({...userData, email: text})}
+        onChangeText={(text) => setUserData({ ...userData, email: text })}
         keyboardType="email-address"
       />
       <TextInput
@@ -184,40 +156,25 @@ export default function RegisterScreen() {
         placeholderTextColor={Colors.placeholder}
         value={userData.Password}
         onChangeText={(text) => {
-          setUserData({...userData, Password: text});
+          setUserData({ ...userData, Password: text });
           checkPasswordStrength(text);
         }}
         secureTextEntry
       />
       <View style={styles.passwordChecklist}>
-        <Text style={[
-          styles.requirementText,
-          { color: passwordStrength.length ? Colors.success : Colors.error }
-        ]}>
+        <Text style={[styles.requirementText, { color: passwordStrength.length ? Colors.success : Colors.error }]}>
           • Minimum 8 characters {passwordStrength.length ? '✓' : ''}
         </Text>
-        <Text style={[
-          styles.requirementText,
-          { color: passwordStrength.hasUpper ? Colors.success : Colors.error }
-        ]}>
+        <Text style={[styles.requirementText, { color: passwordStrength.hasUpper ? Colors.success : Colors.error }]}>
           • At least one uppercase letter {passwordStrength.hasUpper ? '✓' : ''}
         </Text>
-        <Text style={[
-          styles.requirementText,
-          { color: passwordStrength.hasLower ? Colors.success : Colors.error }
-        ]}>
+        <Text style={[styles.requirementText, { color: passwordStrength.hasLower ? Colors.success : Colors.error }]}>
           • At least one lowercase letter {passwordStrength.hasLower ? '✓' : ''}
         </Text>
-        <Text style={[
-          styles.requirementText,
-          { color: passwordStrength.hasNumber ? Colors.success : Colors.error }
-        ]}>
+        <Text style={[styles.requirementText, { color: passwordStrength.hasNumber ? Colors.success : Colors.error }]}>
           • At least one number {passwordStrength.hasNumber ? '✓' : ''}
         </Text>
-        <Text style={[
-          styles.requirementText,
-          { color: passwordStrength.hasSpecial ? Colors.success : Colors.error }
-        ]}>
+        <Text style={[styles.requirementText, { color: passwordStrength.hasSpecial ? Colors.success : Colors.error }]}>
           • At least one special character (@$!%*?&) {passwordStrength.hasSpecial ? '✓' : ''}
         </Text>
       </View>
@@ -229,11 +186,8 @@ export default function RegisterScreen() {
         onChangeText={(text) => setConfirmPassword(text)}
         secureTextEntry
       />
-      <TouchableOpacity 
-        style={[
-          styles.buttonPrimary,
-          isRegistering && styles.buttonDisabled
-        ]} 
+      <TouchableOpacity
+        style={[styles.buttonPrimary, isRegistering && styles.buttonDisabled]}
         onPress={handleRegister}
         disabled={isRegistering}
       >
@@ -314,4 +268,3 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
 });
-

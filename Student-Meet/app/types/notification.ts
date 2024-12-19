@@ -7,4 +7,9 @@ export interface Notification {
   userName: string;
   createdAt: string;
   read: boolean;
+}
+
+// Add default export
+export default function Notification() {
+  return null;
 } 

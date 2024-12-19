@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert, RefreshControl } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import UserFooter from '../../components/footer';
@@ -7,25 +7,14 @@ import Colors from '../../constants/Colors';
 import { db } from '../../firebase_backup.js';
 import { collection, getDocs, doc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { AuthContext } from '../../app/_layout';
-
-interface EventData {
-  Event_Title: string;
-  Description: string;
-  Date: string;
-  Location: string;
-  Max_Participants: string;
-  Event_picture?: string;
-  Start_Time?: string;
-  End_Time?: string;
-  Category?: string;
-  Organizer?: string;
-  participants?: string[];
-  id?: string;
-}
+import EventCard from '../../components/EventCard';
+import { EventData } from '../types/event';
 
 const Home = () => {
   const [events, setEvents] = useState<EventData[]>([]);
   const { user } = useContext(AuthContext);
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   useEffect(() => {
     // Set up real-time listener for events
@@ -45,160 +34,118 @@ const Home = () => {
     return () => unsubscribe();
   }, []);
 
-  const testEventData = async () => {
-    try {
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    // Fetch fresh data
+    const fetchEvents = async () => {
       const eventsRef = collection(db, "Event");
-      const querySnapshot = await getDocs(eventsRef);
-      
-      querySnapshot.docs.forEach((doc, index) => {
-        const data = doc.data();
-        console.log(`\n--- Event ${index + 1} Data Check ---`);
-        console.log('Document ID:', doc.id);
-        console.log('Title:', data.Event_Title || 'MISSING');
-        console.log('Description:', data.Description || 'MISSING');
-        console.log('Date:', data.Date || 'MISSING');
-        console.log('Location:', data.Location || 'MISSING');
-        console.log('Max Participants:', data.Max_Participants || 'MISSING');
-        console.log('Event Picture:', data.Event_picture || 'MISSING');
-        console.log('Start Time:', data.Start_Time || 'MISSING');
-        console.log('End Time:', data.End_Time || 'MISSING');
-        console.log('Category:', data.Category || 'MISSING');
-        console.log('Organizer:', data.Organizer || 'MISSING');
-      });
-    } catch (error) {
-      console.error("Error testing event data: ", error);
-    }
-  };
+      const snapshot = await getDocs(eventsRef);
+      const eventsData = snapshot.docs.map(doc => ({
+        ...doc.data(),
+        id: doc.id,
+        participants: doc.data().participants || []
+      } as EventData));
+      setEvents(eventsData);
+      setRefreshing(false);
+    };
 
-  const handleEventParticipation = async (event: EventData) => {
-    if (!user?.email || !event.id) return;
+    fetchEvents();
+  }, []);
 
-    const isParticipant = event.participants?.includes(user.email);
-
-    if (isParticipant) {
-      // Handle leaving the event
-      try {
-        const eventRef = doc(db, "Event", event.id);
-        const newParticipants = event.participants?.filter(email => email !== user.email) || [];
-        
-        await updateDoc(eventRef, {
-          participants: newParticipants
-        });
-
-        setEvents(prevEvents => prevEvents.map(e => 
-          e.id === event.id 
-            ? { ...e, participants: newParticipants }
-            : e
-        ));
-
-        Alert.alert('Success', 'You have left the event');
-      } catch (error) {
-        console.error("Error leaving event: ", error);
-        Alert.alert('Error', 'Failed to leave event. Please try again.');
-      }
-    } else {
-      // Handle joining the event
-      if ((event.participants?.length || 0) >= parseInt(event.Max_Participants)) {
-        Alert.alert('Event Full', 'This event has reached its maximum participants');
-        return;
-      }
-
-      try {
-        const eventRef = doc(db, "Event", event.id);
-        const newParticipants = [...(event.participants || []), user.email];
-        
-        await updateDoc(eventRef, {
-          participants: newParticipants
-        });
-
-        setEvents(prevEvents => prevEvents.map(e => 
-          e.id === event.id 
-            ? { ...e, participants: newParticipants }
-            : e
-        ));
-
-        Alert.alert('Success', 'You have successfully joined the event!');
-      } catch (error) {
-        console.error("Error joining event: ", error);
-        Alert.alert('Error', 'Failed to join event. Please try again.');
-      }
-    }
-  };
-
-  const EventCard = ({ event }: { event: EventData }) => (
-    <View style={styles.card}>
-      {event.Event_picture ? (
-        <Image 
-          source={{ uri: event.Event_picture }} 
-          style={styles.eventImage}
-          defaultSource={require('../../assets/images/placeholder.png')}
-        />
-      ) : (
-        <View style={styles.placeholderImage}>
-          <FontAwesome name="image" size={40} color="#ccc" />
-        </View>
-      )}
-      <View style={styles.cardContent}>
-        <Text style={styles.eventTitle}>{event.Event_Title}</Text>
-        <Text style={styles.eventDate}>📅 {event.Date}</Text>
-        {event.Start_Time && event.End_Time && (
-          <Text style={styles.eventTime}>⏰ {event.Start_Time} - {event.End_Time}</Text>
-        )}
-        <Text style={styles.eventLocation}>📍 {event.Location}</Text>
-        {event.Category && (
-          <Text style={styles.eventCategory}>🏷️ {event.Category}</Text>
-        )}
-        {event.Organizer && (
-          <Text style={styles.eventOrganizer}>👤 Organized by: {event.Organizer}</Text>
-        )}
-        <Text style={styles.eventDescription}>
-          {event.Description || 'No description available'}
-        </Text>
-        <View style={styles.cardFooter}>
-          <Text style={styles.participants}>
-            👥 Participants: {event.participants?.length || 0}/{event.Max_Participants}
-          </Text>
-          <TouchableOpacity 
-            style={[
-              styles.joinButton,
-              event.participants?.includes(user?.email || '') && styles.joinedButton,
-              (event.participants?.length || 0) >= parseInt(event.Max_Participants) && 
-              !event.participants?.includes(user?.email || '') && styles.disabledButton
-            ]}
-            onPress={() => handleEventParticipation(event)}
-            disabled={(event.participants?.length || 0) >= parseInt(event.Max_Participants) && 
-                     !event.participants?.includes(user?.email || '')}
-          >
-            <Text style={styles.joinButtonText}>
-              {event.participants?.includes(user?.email || '') ? 'Leave' : 'Join'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
-  );
+  const filteredEvents = React.useMemo(() => {
+    if (!selectedCategory) return events;
+    return events.filter(event => event.Category_id === selectedCategory);
+  }, [events, selectedCategory]);
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={['#44c9ea', 'white']} style={styles.header}>
-        <Text style={styles.title}>Student Meet</Text>
-        <TouchableOpacity>
-          <FontAwesome name="search" size={24} color="white" />
-        </TouchableOpacity>
-      </LinearGradient>
-
       <ScrollView 
         contentContainerStyle={styles.body}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[Colors.primary]}
+            tintColor={Colors.primary}
+            progressViewOffset={120}
+          />
+        }
       >
-        {events.length > 0 ? (
-          events.map((event, index) => (
-            <EventCard key={index} event={event} />
+        <View style={styles.headerSpacer} />
+        <View style={styles.categoryFilters}>
+          <TouchableOpacity 
+            style={[
+              styles.filterButton,
+              selectedCategory === 'games' && styles.filterButtonActive
+            ]}
+            onPress={() => setSelectedCategory(selectedCategory === 'games' ? null : 'games')}
+          >
+            <Text style={[
+              styles.filterText,
+              selectedCategory === 'games' && styles.filterTextActive
+            ]}>Games</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[
+              styles.filterButton,
+              selectedCategory === 'sport' && styles.filterButtonActive
+            ]}
+            onPress={() => setSelectedCategory(selectedCategory === 'sport' ? null : 'sport')}
+          >
+            <Text style={[
+              styles.filterText,
+              selectedCategory === 'sport' && styles.filterTextActive
+            ]}>Sport</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[
+              styles.filterButton,
+              selectedCategory === 'ehb-events' && styles.filterButtonActive
+            ]}
+            onPress={() => setSelectedCategory(selectedCategory === 'ehb-events' ? null : 'ehb-events')}
+          >
+            <Text style={[
+              styles.filterText,
+              selectedCategory === 'ehb-events' && styles.filterTextActive
+            ]}>EhB</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[
+              styles.filterButton,
+              selectedCategory === 'creativity' && styles.filterButtonActive
+            ]}
+            onPress={() => setSelectedCategory(selectedCategory === 'creativity' ? null : 'creativity')}
+          >
+            <Text style={[
+              styles.filterText,
+              selectedCategory === 'creativity' && styles.filterTextActive
+            ]}>Creative</Text>
+          </TouchableOpacity>
+        </View>
+
+        {filteredEvents.length > 0 ? (
+          filteredEvents.map((event, index) => (
+            <EventCard key={event.id || index} event={event} />
           ))
         ) : (
           <Text style={styles.placeholderText}>No events found</Text>
         )}
       </ScrollView>
+
+      <LinearGradient 
+        colors={['#44c9ea', 'white']} 
+        style={styles.header}
+        pointerEvents="box-none"
+      >
+        <Text style={styles.title}>Student Meet</Text>
+        <TouchableOpacity>
+          <FontAwesome name="search" size={24} color="white" />
+        </TouchableOpacity>
+      </LinearGradient>
 
       <UserFooter />
     </View>
@@ -232,93 +179,8 @@ const styles = StyleSheet.create({
     fontFamily: 'Poppins',
   },
   body: {
-    paddingTop: 140,
     paddingBottom: 100,
     paddingHorizontal: 16,
-  },
-  card: {
-    backgroundColor: 'white',
-    borderRadius: 15,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  eventImage: {
-    width: '100%',
-    height: 150,
-    borderTopLeftRadius: 15,
-    borderTopRightRadius: 15,
-  },
-  placeholderImage: {
-    width: '100%',
-    height: 150,
-    backgroundColor: '#f5f5f5',
-    borderTopLeftRadius: 15,
-    borderTopRightRadius: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  cardContent: {
-    padding: 16,
-  },
-  eventTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#333',
-  },
-  eventDate: {
-    fontSize: 14,
-    color: Colors.secondary,
-    marginBottom: 4,
-  },
-  eventLocation: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
-  },
-  eventTime: {
-    fontSize: 14,
-    color: Colors.secondary,
-    marginBottom: 4,
-  },
-  eventCategory: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
-  },
-  eventOrganizer: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
-  },
-  eventDescription: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 12,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  participants: {
-    fontSize: 14,
-    color: '#666',
-  },
-  joinButton: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  joinButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
   },
   placeholderText: {
     fontSize: 18,
@@ -326,11 +188,34 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 20,
   },
-  joinedButton: {
-    backgroundColor: Colors.secondary,
+  categoryFilters: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    marginBottom: 20,
   },
-  disabledButton: {
-    backgroundColor: '#cccccc',
+  filterButton: {
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#f0f0f0',
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  filterButtonActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  filterText: {
+    color: '#666',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  filterTextActive: {
+    color: 'white',
+  },
+  headerSpacer: {
+    height: 140,
   },
 });
 

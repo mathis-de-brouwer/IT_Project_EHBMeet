@@ -8,6 +8,8 @@ import CryptoJS from 'crypto-js';
 import { AuthContext } from '../_layout';
 import { UserData } from '../../app/types/user';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { auth } from '../../firebase_backup';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -21,45 +23,47 @@ export default function LoginScreen() {
       return;
     }
 
-    // Validate email domain
-    const validDomains = ['@ehb.be', '@student.ehb.be'];
-    const emailLower = email.toLowerCase();
-    const isValidDomain = validDomains.some(domain => emailLower.endsWith(domain));
-
-    if (!isValidDomain) {
-      Alert.alert('Error', 'Please use your EHB email address');
-      return;
-    }
-
     try {
+      const emailLower = email.toLowerCase();
+      
+      // Check if user exists in Firestore first
       const usersRef = collection(db, "Users");
       const q = query(usersRef, where("email", "==", emailLower));
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
-        Alert.alert('Error', 'No user found with this email');
+        Alert.alert('Error', 'No account found with this email');
         return;
       }
 
+      // Then try Firebase Auth
+      const userCredential = await signInWithEmailAndPassword(auth, emailLower, password);
+      
       const userDoc = querySnapshot.docs[0];
-      const userData = userDoc.data();
+      const userData = { ...userDoc.data(), User_ID: userDoc.id };
 
-      // Hash the entered password and compare with stored hash
-      const hashedPassword = CryptoJS.SHA256(password).toString();
+      await AsyncStorage.setItem('userData', JSON.stringify(userData));
+      signIn(userData as UserData);
+      router.replace('/(app)/home');
 
-      if (userData.Password === hashedPassword) {
-        // Store user data in AsyncStorage
-        await AsyncStorage.setItem('userData', JSON.stringify(userData));
-        
-        signIn(userData as UserData);
-        console.log('Login successful for user:', userDoc.id);
-        router.replace('/home');
+    } catch (error: any) {
+      console.error("Login error:", error);
+      if (error.code === 'auth/invalid-credential') {
+        Alert.alert('Error', 'Invalid email or password');
       } else {
-        Alert.alert('Error', 'Incorrect password');
+        Alert.alert('Error', 'Failed to login. Please try again.');
       }
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      // Navigate to login screen
+      router.replace('/login');
     } catch (error) {
-      console.error("Error during login: ", error);
-      Alert.alert('Error', 'Login failed. Please try again.');
+      console.error("Error signing out:", error);
+      Alert.alert('Error', 'Failed to sign out. Please try again.');
     }
   };
 
