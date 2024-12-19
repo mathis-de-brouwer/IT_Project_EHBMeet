@@ -1,13 +1,21 @@
 import React, { useState, useContext } from 'react';
+<<<<<<< HEAD
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
+=======
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, ScrollView, Alert } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+>>>>>>> parent of 14734c2d (frontend)
 import { db } from '../../../firebase_backup';
 import { collection, addDoc } from 'firebase/firestore';
 import Colors from '../../../constants/Colors';
 import { AuthContext } from '../../_layout';
+<<<<<<< HEAD
 import UserFooter from '../../../components/footer';
 import { Picker } from '@react-native-picker/picker';
 import { EventCategory } from '../../types/event';
+=======
+>>>>>>> parent of 14734c2d (frontend)
 
 interface EventData {
   Category_id: string;
@@ -40,8 +48,13 @@ export default function ActivityAddScreen() {
   
   const [eventData, setEventData] = useState<EventData>(initialEventData);
 
+<<<<<<< HEAD
   const resetForm = () => {
     setEventData(initialEventData);
+=======
+  const handleCategorySelect = (category: string) => {
+    setEventData({ ...eventData, Category_id: category });
+>>>>>>> parent of 14734c2d (frontend)
   };
 
   const handleCreateEvent = async () => {
@@ -50,7 +63,11 @@ export default function ActivityAddScreen() {
 
     try {
       // Validate required fields
+<<<<<<< HEAD
       const requiredFields = ['Event_Title', 'Date', 'Location', 'Max_Participants'];
+=======
+      const requiredFields = ['Event_Title', 'Date', 'Location', 'Max_Participants', 'Category_id'];
+>>>>>>> parent of 14734c2d (frontend)
       const missingFields = requiredFields.filter(field => !eventData[field as keyof EventData]);
       
       if (missingFields.length > 0) {
@@ -86,9 +103,14 @@ export default function ActivityAddScreen() {
 
   return (
     <View style={styles.mainContainer}>
+<<<<<<< HEAD
       <ScrollView style={styles.container}>
         <Text style={styles.title}>Create New Event</Text>
         
+=======
+      <ScrollView style={styles.scrollContainer}>
+        {/* Title Input */}
+>>>>>>> parent of 14734c2d (frontend)
         <TextInput
           style={styles.input}
           placeholder="Event Title *"
@@ -97,6 +119,7 @@ export default function ActivityAddScreen() {
           onChangeText={(text) => setEventData({...eventData, Event_Title: text})}
         />
 
+<<<<<<< HEAD
         <TextInput
           style={styles.input}
           placeholder="Date (YYYY-MM-DD) *"
@@ -104,7 +127,16 @@ export default function ActivityAddScreen() {
           value={eventData.Date}
           onChangeText={(text) => setEventData({...eventData, Date: text})}
         />
+=======
+        {/* Photo Section */}
+        <View style={styles.photoContainer}>
+          <TouchableOpacity style={styles.photoBox}>
+            <Text style={styles.photoText}>Add photo here</Text>
+          </TouchableOpacity>
+        </View>
+>>>>>>> parent of 14734c2d (frontend)
 
+        {/* Description */}
         <TextInput
           style={styles.input}
           placeholder="Location *"
@@ -123,6 +155,45 @@ export default function ActivityAddScreen() {
           numberOfLines={4}
         />
 
+<<<<<<< HEAD
+=======
+        {/* Location and Date */}
+        <View style={styles.detailsContainer}>
+          <TextInput
+            style={styles.detailsInput}
+            placeholder="Location"
+            placeholderTextColor={Colors.placeholder}
+            value={eventData.Location}
+            onChangeText={(text) => setEventData({ ...eventData, Location: text })}
+          />
+          <TextInput
+            style={styles.detailsInput}
+            placeholder="Date (YYYY-MM-DD)"
+            placeholderTextColor={Colors.placeholder}
+            value={eventData.Date}
+            onChangeText={(text) => setEventData({ ...eventData, Date: text })}
+          />
+        </View>
+
+        {/* Categories */}
+        <Text style={styles.categoryTitle}>Categories:</Text>
+        <View style={styles.categoryContainer}>
+          <TouchableOpacity onPress={() => handleCategorySelect('sport')} style={styles.categoryBox}>
+            <Ionicons name="football-outline" size={50} color={eventData.Category_id === 'sport' ? Colors.primary : 'gray'} />
+            <Text style={styles.categoryText}>Sport</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => handleCategorySelect('games')} style={styles.categoryBox}>
+            <Ionicons name="game-controller-outline" size={50} color={eventData.Category_id === 'games' ? Colors.primary : 'gray'} />
+            <Text style={styles.categoryText}>Games</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => handleCategorySelect('creativity')} style={styles.categoryBox}>
+            <Ionicons name="color-palette-outline" size={50} color={eventData.Category_id === 'creativity' ? Colors.primary : 'gray'} />
+            <Text style={styles.categoryText}>Creativity</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Max Participants */}
+>>>>>>> parent of 14734c2d (frontend)
         <TextInput
           style={styles.input}
           placeholder="Maximum Participants *"
@@ -132,6 +203,7 @@ export default function ActivityAddScreen() {
           keyboardType="numeric"
         />
 
+<<<<<<< HEAD
         <View style={styles.pickerContainer}>
           <Picker
             selectedValue={eventData.Category_id as EventCategory}
@@ -165,6 +237,11 @@ export default function ActivityAddScreen() {
           <Text style={styles.buttonText}>
             {isSubmitting ? 'Creating...' : 'Create Event'}
           </Text>
+=======
+        {/* Submit Button */}
+        <TouchableOpacity style={styles.button} onPress={handleCreateEvent}>
+          <Text style={styles.buttonText}>{isSubmitting ? 'Creating...' : 'Create Event'}</Text>
+>>>>>>> parent of 14734c2d (frontend)
         </TouchableOpacity>
       </ScrollView>
       <UserFooter />
@@ -173,6 +250,7 @@ export default function ActivityAddScreen() {
 }
 
 const styles = StyleSheet.create({
+<<<<<<< HEAD
   mainContainer: {
     flex: 1,
     backgroundColor: Colors.background,
@@ -232,3 +310,21 @@ const styles = StyleSheet.create({
     width: '100%',
   },
 }); 
+=======
+  mainContainer: { flex: 1, backgroundColor: '#f9f9f9' },
+  scrollContainer: { padding: 20 },
+  titleInput: { fontSize: 20, borderBottomWidth: 1, borderColor: Colors.inputBorder, marginBottom: 10 },
+  photoContainer: { alignItems: 'center', marginVertical: 10 },
+  photoBox: { width: 150, height: 150, backgroundColor: Colors.inputBackground, justifyContent: 'center', alignItems: 'center' },
+  photoText: { color: Colors.placeholder },
+  description: { height: 100, textAlignVertical: 'top', borderWidth: 1, borderColor: Colors.inputBorder, marginBottom: 10, padding: 10 },
+  detailsContainer: { marginBottom: 10 },
+  detailsInput: { borderWidth: 1, borderColor: Colors.inputBorder, padding: 10, marginBottom: 10, borderRadius: 5 },
+  categoryTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
+  categoryContainer: { flexDirection: 'row', justifyContent: 'space-between' },
+  categoryBox: { alignItems: 'center', flex: 1 },
+  categoryText: { marginTop: 5, color: Colors.text },
+  button: { backgroundColor: Colors.primary, paddingVertical: 15, borderRadius: 8, alignItems: 'center', marginTop: 10 },
+  buttonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+});
+>>>>>>> parent of 14734c2d (frontend)
