@@ -32,6 +32,7 @@ export default function EventDetailsScreen() {
     };
     fetchEventDetails();
   }, [eventId, user]);
+  
 
   const handleJoinEvent = async () => {
     if (!event || !user || isJoining) return;
