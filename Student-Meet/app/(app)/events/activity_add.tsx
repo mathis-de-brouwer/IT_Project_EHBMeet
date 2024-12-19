@@ -86,8 +86,9 @@ export default function ActivityAddScreen() {
 
   return (
     <View style={styles.mainContainer}>
-       <Header title="Agenda" />
-      <ScrollView style={styles.scrollContainer}>
+      <ScrollView style={styles.container}>
+        <Text style={styles.title}>Create New Event</Text>
+        
         <TextInput
           style={styles.input}
           placeholder="Event Title *"
@@ -104,16 +105,13 @@ export default function ActivityAddScreen() {
           onChangeText={(text) => setEventData({...eventData, Date: text})}
         />
 
-        {/* Photo Section */}
-        <View style={styles.photoContainer}>
-          <TouchableOpacity style={styles.photoBox} onPress={pickImage}>
-            {eventData.Event_picture ? (
-              <Image source={{ uri: eventData.Event_picture }} style={styles.image} />
-            ) : (
-              <Text style={styles.photoText}>Add photo here</Text>
-            )}
-          </TouchableOpacity>
-        </View>
+        <TextInput
+          style={styles.input}
+          placeholder="Location *"
+          placeholderTextColor={Colors.placeholder}
+          value={eventData.Location}
+          onChangeText={(text) => setEventData({...eventData, Location: text})}
+        />
 
         <TextInput
           style={[styles.input, styles.textArea]}
@@ -175,20 +173,62 @@ export default function ActivityAddScreen() {
 }
 
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1, backgroundColor: '#white',  },
-  scrollContainer: { padding: 20 , marginTop: 150},
-  titleInput: { fontSize: 20, borderBottomWidth: 1, borderColor: Colors.inputBorder, marginBottom: 10 },
-  photoContainer: { alignItems: 'center', marginVertical: 10 },
-  photoBox: { width: 150, height: 150, backgroundColor: '#ffffff', justifyContent: 'center', alignItems: 'center' },
-  photoText: { color: Colors.placeholder },
-  image: { width: '100%', height: '100%', borderRadius: 8 },
-  description: { height: 100, textAlignVertical: 'top', borderWidth: 1, borderColor: Colors.inputBorder, marginBottom: 10, padding: 10 },
-  detailsContainer: { marginBottom: 10 },
-  detailsInput: { borderWidth: 1, borderColor: Colors.inputBorder, padding: 10, marginBottom: 10, borderRadius: 5 },
-  categoryTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
-  categoryContainer: { flexDirection: 'row', justifyContent: 'space-between' },
-  categoryBox: { alignItems: 'center', flex: 1 },
-  categoryText: { marginTop: 5, color: Colors.text },
-  button: { backgroundColor: Colors.primary, paddingVertical: 15, borderRadius: 8, alignItems: 'center', marginTop: 10 },
-  buttonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-});
+  mainContainer: {
+    flex: 1,
+    backgroundColor: Colors.background,
+  },
+  container: {
+    flex: 1,
+    padding: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: Colors.text,
+  },
+  input: {
+    width: '100%',
+    height: 50,
+    borderColor: Colors.inputBorder,
+    borderWidth: 1,
+    borderRadius: 8,
+    marginBottom: 15,
+    paddingHorizontal: 15,
+    backgroundColor: Colors.inputBackground,
+    fontSize: 16,
+    color: Colors.text,
+  },
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top',
+    paddingTop: 10,
+  },
+  button: {
+    backgroundColor: Colors.primary,
+    paddingVertical: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  buttonDisabled: {
+    opacity: 0.7,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
+    borderRadius: 8,
+    marginBottom: 15,
+    backgroundColor: Colors.inputBackground,
+  },
+  picker: {
+    height: 50,
+    width: '100%',
+  },
+}); 
