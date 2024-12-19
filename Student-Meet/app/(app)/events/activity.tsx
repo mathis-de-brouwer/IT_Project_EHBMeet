@@ -42,31 +42,27 @@ export default function EventDetailsScreen() {
       const eventDoc = await getDoc(eventRef);
       const currentEvent = eventDoc.data();
 
+      // Check if user is already joined
       if (currentEvent?.participants?.includes(user.User_ID)) {
         Alert.alert('Error', 'You have already joined this event');
         return;
       }
 
+      // Check if event is full
       if (currentEvent?.participants?.length >= parseInt(event.Max_Participants)) {
         Alert.alert('Error', 'This event is already full');
         return;
       }
 
+      // Add user to participants
       await updateDoc(eventRef, {
         participants: arrayUnion(user.User_ID)
       });
 
-      setEvent(prev => ({
-        ...prev!,
-        participants: [...(prev?.participants || []), user.User_ID]
-      }));
-      setParticipantCount(prev => prev + 1);
-      setHasJoined(true);
-
       Alert.alert('Success', 'You have successfully joined the event!', [
         { 
           text: 'OK', 
-          onPress: () => router.replace('/(app)/home')  // Navigate back to home
+          onPress: () => router.replace('/(app)/home')  // Go back to home instead
         }
       ]);
     } catch (error) {
@@ -91,24 +87,12 @@ export default function EventDetailsScreen() {
         return;
       }
 
-      const newParticipants = currentEvent.participants.filter((id: string) => id !== user.User_ID);
       await updateDoc(eventRef, {
-        participants: newParticipants
+        participants: currentEvent.participants.filter((id: string) => id !== user.User_ID)
       });
 
-      setEvent(prev => ({
-        ...prev!,
-        participants: newParticipants
-      }));
-      setParticipantCount(prev => prev - 1);
-      setHasJoined(false);
-
-      Alert.alert('Success', 'You have left the event', [
-        {
-          text: 'OK',
-          onPress: () => router.replace('/(app)/home')
-        }
-      ]);
+      Alert.alert('Success', 'You have left the event');
+      router.back();
     } catch (error) {
       console.error('Error leaving event:', error);
       Alert.alert('Error', 'Failed to leave event. Please try again.');
