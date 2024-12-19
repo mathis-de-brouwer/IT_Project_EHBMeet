@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView } from 'react-native';
-import { collection, query, where, getDocs, updateDoc, doc, onSnapshot } from 'firebase/firestore';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { collection, query, where, getDocs, updateDoc, doc, onSnapshot, getDoc } from 'firebase/firestore';
 import { db } from '../../../firebase_backup';
 import { Notification } from '../../types/notification';
 import { AuthContext } from '../../_layout';
@@ -8,6 +8,7 @@ import UserFooter from '../../../components/footer';
 import Colors from '../../../constants/Colors';
 import { useRouter } from 'expo-router';
 import { format } from 'date-fns';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 export default function NotificationsScreen() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -20,11 +21,16 @@ export default function NotificationsScreen() {
     const notificationsRef = collection(db, 'Notifications');
     const q = query(notificationsRef, where('userId', '==', user.User_ID));
 
+    console.log('Setting up notifications listener for user:', user.User_ID);
+
     const unsubscribe = onSnapshot(q, (snapshot) => {
+      console.log('Notifications update received:', snapshot.docs.length, 'notifications');
       const notificationsList = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       } as Notification));
+
+      console.log('Processed notifications:', notificationsList);
 
       setNotifications(notificationsList.sort((a, b) => 
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -37,10 +43,28 @@ export default function NotificationsScreen() {
   }, [user?.User_ID]);
 
   const handleNotificationPress = async (notification: Notification) => {
-    await updateDoc(doc(db, 'Notifications', notification.id), {
-      read: true
-    });
-    router.push(`/events/activity?eventId=${notification.eventId}&fromNotifications=true`);
+    try {
+      // First update the read status
+      await updateDoc(doc(db, 'Notifications', notification.id), {
+        read: true
+      });
+
+      // Check if the event still exists before navigating
+      const eventRef = doc(db, 'Event', notification.eventId);
+      const eventDoc = await getDoc(eventRef);
+
+      if (!eventDoc.exists()) {
+        Alert.alert('Event Not Found', 'This event may have been deleted.');
+        return;
+      }
+
+      // If event exists, navigate to it
+      router.push(`/events/activity?eventId=${notification.eventId}&fromNotifications=true`);
+      
+    } catch (error) {
+      console.error('Error handling notification:', error);
+      Alert.alert('Error', 'Unable to open event details. Please try again.');
+    }
   };
 
   const formatTimeAgo = (dateString: string) => {
@@ -69,9 +93,21 @@ export default function NotificationsScreen() {
     }
   };
 
+  const handleBack = () => {
+    router.back();
+  };
+
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Notifications</Text>
+      <View style={styles.headerContainer}>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={handleBack}
+        >
+          <Ionicons name="arrow-back" size={24} color={Colors.text} />
+        </TouchableOpacity>
+        <Text style={styles.header}>Notifications</Text>
+      </View>
       <ScrollView style={styles.scrollView}>
         {notifications.length === 0 ? (
           <Text style={styles.noNotifications}>No notifications yet</Text>
@@ -107,11 +143,20 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 60,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  backButton: {
+    padding: 10,
+    marginRight: 10,
+  },
   header: {
     fontSize: 24,
     fontWeight: 'bold',
-    padding: 20,
-    paddingTop: 60,
     color: Colors.text,
   },
   scrollView: {

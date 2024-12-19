@@ -4,7 +4,7 @@ import { EventData } from '../app/types/event';
 import Colors from '../constants/Colors';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { doc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, getDoc, addDoc, collection } from 'firebase/firestore';
 import { db } from '../firebase_backup';
 import { useContext } from 'react';
 import { AuthContext } from '../app/_layout';
@@ -22,8 +22,8 @@ const EventCard = ({ event }: EventCardProps) => {
   const isFull = participantCount >= parseInt(event.Max_Participants);
 
   const handleJoinEvent = async (e: any) => {
-    e.stopPropagation(); // Prevent navigation to details
-    if (!event || !user || isJoining) return;
+    e.stopPropagation();
+    if (!event || !user || isJoining || !event.id) return;
     setIsJoining(true);
 
     try {
@@ -32,9 +32,20 @@ const EventCard = ({ event }: EventCardProps) => {
         participants: arrayUnion(user.User_ID)
       });
 
+      const notificationData = {
+        type: 'join_event',
+        userId: event.User_ID,
+        userName: user.email,
+        eventId: event.id,
+        eventTitle: event.Event_Title,
+        createdAt: new Date().toISOString(),
+        read: false
+      };
+
+      await addDoc(collection(db, 'Notifications'), notificationData);
+
       setHasJoined(true);
       setParticipantCount(prev => prev + 1);
-      Alert.alert('Success', 'You have joined the event!');
     } catch (error) {
       console.error('Error joining event:', error);
       Alert.alert('Error', 'Failed to join event');
@@ -44,8 +55,8 @@ const EventCard = ({ event }: EventCardProps) => {
   };
 
   const handleLeaveEvent = async (e: any) => {
-    e.stopPropagation(); // Prevent navigation to details
-    if (!event || !user || isJoining) return;
+    e.stopPropagation();
+    if (!event || !user || isJoining || !event.id) return;
     setIsJoining(true);
 
     try {
@@ -58,9 +69,20 @@ const EventCard = ({ event }: EventCardProps) => {
         participants: newParticipants
       });
 
+      const notificationData = {
+        type: 'leave_event',
+        userId: event.User_ID,
+        userName: user.email,
+        eventId: event.id,
+        eventTitle: event.Event_Title,
+        createdAt: new Date().toISOString(),
+        read: false
+      };
+
+      await addDoc(collection(db, 'Notifications'), notificationData);
+
       setHasJoined(false);
       setParticipantCount(prev => prev - 1);
-      Alert.alert('Success', 'You have left the event');
     } catch (error) {
       console.error('Error leaving event:', error);
       Alert.alert('Error', 'Failed to leave event');

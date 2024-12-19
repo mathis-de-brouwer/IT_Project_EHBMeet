@@ -132,7 +132,7 @@ const Home = () => {
             <EventCard key={event.id || index} event={event} />
           ))
         ) : (
-          <Text style={styles.placeholderText}>No events found</Text>
+          <Text style={styles.noEventsText}>No events found</Text>
         )}
       </ScrollView>
 
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
     paddingBottom: 100,
     paddingHorizontal: 16,
   },
-  placeholderText: {
+  noEventsText: {
     fontSize: 18,
     color: Colors.text,
     textAlign: 'center',

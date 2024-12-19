@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { doc, updateDoc, arrayUnion, getDoc, deleteDoc } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, getDoc, deleteDoc, addDoc, collection } from 'firebase/firestore';
 import { db } from '../../../firebase_backup';
 import { EventData } from '../../types/event';
 import { AuthContext } from '../../_layout';
@@ -69,6 +69,19 @@ export default function EventDetailsScreen() {
           onPress: () => returnTo === 'agenda' ? router.push('/(app)/agenda') : router.push('/(app)/home')
         }
       ]);
+
+      // Add notification
+      const notificationData = {
+        type: 'join_event',
+        userId: event.User_ID, // Event creator's ID
+        userName: user.email,
+        eventId: eventId.toString(),
+        eventTitle: event.Event_Title,
+        createdAt: new Date().toISOString(),
+        read: false
+      };
+
+      await addDoc(collection(db, 'Notifications'), notificationData);
     } catch (error) {
       console.error('Error joining event:', error);
       Alert.alert('Error', 'Failed to join event. Please try again.');
@@ -109,6 +122,19 @@ export default function EventDetailsScreen() {
           onPress: () => returnTo === 'agenda' ? router.push('/(app)/agenda') : router.push('/(app)/home')
         }
       ]);
+
+      // Add notification
+      const notificationData = {
+        type: 'leave_event',
+        userId: event.User_ID,
+        userName: user.email,
+        eventId: eventId.toString(),
+        eventTitle: event.Event_Title,
+        createdAt: new Date().toISOString(),
+        read: false
+      };
+
+      await addDoc(collection(db, 'Notifications'), notificationData);
     } catch (error) {
       console.error('Error leaving event:', error);
       Alert.alert('Error', 'Failed to leave event. Please try again.');
@@ -139,6 +165,25 @@ export default function EventDetailsScreen() {
           style: 'destructive' as const,
           onPress: async () => {
             try {
+              // Send notifications to all participants before deleting
+              if (event?.participants?.length) {
+                const notificationPromises = event.participants.map(participantId => {
+                  const notificationData = {
+                    type: 'event_cancelled',
+                    userId: participantId,
+                    userName: user?.email || 'Event Creator',
+                    eventId: eventId as string,
+                    eventTitle: event.Event_Title,
+                    createdAt: new Date().toISOString(),
+                    read: false
+                  };
+                  return addDoc(collection(db, 'Notifications'), notificationData);
+                });
+
+                await Promise.all(notificationPromises);
+              }
+
+              // Delete the event
               await deleteDoc(doc(db, 'Event', eventId as string));
               Alert.alert('Success', 'Event deleted successfully', [
                 {

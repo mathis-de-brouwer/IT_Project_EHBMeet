@@ -69,9 +69,10 @@ const Agenda = () => {
     });
   };
 
-  const handleDeleteEvent = async (eventId: string, e?: any) => {
+  const handleDeleteEvent = async (eventId: string | undefined, e?: any) => {
+    if (!eventId) return;
     if (e) {
-      e.stopPropagation();  // Prevent event card click
+      e.stopPropagation();
     }
     
     Alert.alert(
@@ -80,11 +81,11 @@ const Agenda = () => {
       [
         {
           text: 'Cancel',
-          style: 'cancel' as const
+          style: 'cancel'
         },
         {
           text: 'Delete',
-          style: 'destructive' as const,
+          style: 'destructive',
           onPress: async () => {
             try {
               setLoading(true);
@@ -103,7 +104,8 @@ const Agenda = () => {
     );
   };
 
-  const handleLeaveEvent = async (eventId: string) => {
+  const handleLeaveEvent = async (eventId: string | undefined) => {
+    if (!eventId) return;
     try {
       const eventRef = doc(db, 'Event', eventId);
       const eventDoc = await getDoc(eventRef);

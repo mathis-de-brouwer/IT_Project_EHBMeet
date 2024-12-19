@@ -133,16 +133,18 @@ export default function ActivityAddScreen() {
       if (participants.length > 0) {
         const notificationPromises = participants.map(participantId => {
           if (participantId === user.User_ID) return null;
-
-          return addDoc(collection(db, 'Notifications'), {
+          
+          const notificationData = {
             type: 'event_edited',
             userId: participantId,
             userName: user.email,
             eventId: eventId.toString(),
-            eventTitle: eventData.Event_Title,
+            eventTitle: event.Event_Title,
             createdAt: new Date().toISOString(),
             read: false
-          });
+          };
+          
+          return addDoc(collection(db, 'Notifications'), notificationData);
         });
 
         await Promise.all(notificationPromises.filter(Boolean));
