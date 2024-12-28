@@ -152,6 +152,11 @@ export default function EventDetailsScreen() {
   };
 
   const handleDeleteEvent = async () => {
+    if (!event || !user) {
+      console.log("Missing event or user data");
+      return;
+    }
+
     Alert.alert(
       'Delete Event',
       'Are you sure you want to delete this event?',
@@ -165,26 +170,62 @@ export default function EventDetailsScreen() {
           style: 'destructive' as const,
           onPress: async () => {
             try {
-              // Send notifications to all participants before deleting
-              if (event?.participants?.length) {
-                const notificationPromises = event.participants.map(participantId => {
+              console.log("Starting delete process...");
+              
+              // Store event details before deletion
+              const eventDetails = {
+                title: event.Event_Title,
+                id: eventId as string
+              };
+
+              // Create notification for owner
+              console.log("Creating owner notification...");
+              const ownerNotification = {
+                type: 'event_cancelled' as const,
+                userId: user.User_ID,
+                userName: 'You',
+                eventId: eventDetails.id,
+                eventTitle: eventDetails.title,
+                createdAt: new Date().toISOString(),
+                read: false
+              };
+              
+              const ownerNotifRef = await addDoc(collection(db, 'Notifications'), ownerNotification);
+              console.log("Owner notification created:", ownerNotifRef.id);
+
+              // Send notifications to all participants
+              const participants = [...(event.participants || [])];
+              console.log("Participants to notify:", participants);
+
+              if (participants.length > 0) {
+                const notificationPromises = participants.map(participantId => {
+                  if (participantId === user.User_ID) return null;
+                  
+                  console.log("Creating notification for participant:", participantId);
                   const notificationData = {
-                    type: 'event_cancelled',
+                    type: 'event_cancelled' as const,
                     userId: participantId,
-                    userName: user?.email || 'Event Creator',
-                    eventId: eventId as string,
-                    eventTitle: event.Event_Title,
+                    userName: user.First_Name,
+                    eventId: eventDetails.id,
+                    eventTitle: eventDetails.title,
                     createdAt: new Date().toISOString(),
                     read: false
                   };
                   return addDoc(collection(db, 'Notifications'), notificationData);
                 });
 
-                await Promise.all(notificationPromises);
+                const results = await Promise.all(notificationPromises.filter(Boolean));
+                console.log("Participant notifications created:", results.length);
               }
 
+              // Small delay to ensure notifications are processed
+              await new Promise(resolve => setTimeout(resolve, 500));
+
               // Delete the event
+              console.log("Deleting event...");
               await deleteDoc(doc(db, 'Event', eventId as string));
+              console.log("Event deleted successfully");
+
               Alert.alert('Success', 'Event deleted successfully', [
                 {
                   text: 'OK',
@@ -192,7 +233,7 @@ export default function EventDetailsScreen() {
                 }
               ]);
             } catch (error) {
-              console.error('Error deleting event:', error);
+              console.error('Error in delete process:', error);
               Alert.alert('Error', 'Failed to delete event');
             }
           }
