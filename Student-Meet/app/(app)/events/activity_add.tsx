@@ -28,7 +28,7 @@ export default function ActivityAddScreen() {
   const { user } = useContext(AuthContext);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [event, setEvent] = useState<EventData | null>(null);
-  const { eventId } = useLocalSearchParams();
+  const { eventId, isEditing } = useLocalSearchParams();
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [date, setDate] = useState(new Date());
   
@@ -80,12 +80,12 @@ export default function ActivityAddScreen() {
     }
   };
 
-  const handleCreateEvent = async () => {
+  const handleSubmit = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
 
     try {
-      // Validate required fields
+      // Validate required fields first
       const requiredFields = ['Event_Title', 'Date', 'Location', 'Max_Participants'];
       const missingFields = requiredFields.filter(field => !eventData[field as keyof EventData]);
       
@@ -95,66 +95,57 @@ export default function ActivityAddScreen() {
         return;
       }
 
-      // Add the event to Firestore
-      const eventRef = await addDoc(collection(db, "Event"), {
-        ...eventData,
-        User_ID: user?.User_ID,
-        Created_At: new Date().toISOString(),
-      });
+      if (isEditing === '1' && eventId) {
+        // Update existing event
+        const eventRef = doc(db, 'Event', eventId as string);
+        await updateDoc(eventRef, eventData as any);
 
-      console.log("Event created with ID: ", eventRef.id);
-      Alert.alert('Success', 'Event created successfully!', [
-        { 
-          text: 'OK', 
-          onPress: () => {
-            resetForm();  // Reset the form
-            router.replace('/(app)/home');  // Navigate home
-          }
+        // Send notifications to all participants
+        if (event?.participants?.length) {
+          const notificationPromises = event.participants.map(participantId => {
+            if (participantId === user?.User_ID) return null; // Skip owner
+            
+            const notificationData = {
+              type: 'event_edited',
+              userId: participantId,
+              userName: user?.First_Name || 'Event Creator',
+              eventId: eventId as string,
+              eventTitle: eventData.Event_Title,
+              createdAt: new Date().toISOString(),
+              read: false
+            };
+            return addDoc(collection(db, 'Notifications'), notificationData);
+          });
+
+          await Promise.all(notificationPromises.filter(Boolean));
         }
-      ]);
-    } catch (error) {
-      console.error("Error creating event: ", error);
-      Alert.alert('Error', 'Failed to create event. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
-  const handleEditEvent = async () => {
-    if (!eventId || !event || !user) return;
-    
-    try {
-      const eventRef = doc(db, 'Event', eventId as string);
-      const updateData = { ...eventData }; // Convert to plain object
-      await updateDoc(eventRef, updateData);
-
-      // Create edit notification for all participants
-      const participants = event.participants ?? [];
-      if (participants.length > 0) {
-        const notificationPromises = participants.map(participantId => {
-          if (participantId === user.User_ID) return null;
-          
-          const notificationData = {
-            type: 'event_edited',
-            userId: participantId,
-            userName: user.email,
-            eventId: eventId.toString(),
-            eventTitle: event.Event_Title,
-            createdAt: new Date().toISOString(),
-            read: false
-          };
-          
-          return addDoc(collection(db, 'Notifications'), notificationData);
+        Alert.alert('Success', 'Event updated successfully!', [
+          { text: 'OK', onPress: () => router.back() }
+        ]);
+      } else {
+        // Create new event
+        const eventRef = await addDoc(collection(db, "Event"), {
+          ...eventData,
+          User_ID: user?.User_ID,
+          Created_At: new Date().toISOString(),
         });
 
-        await Promise.all(notificationPromises.filter(Boolean));
+        Alert.alert('Success', 'Event created successfully!', [
+          { 
+            text: 'OK', 
+            onPress: () => {
+              resetForm();
+              router.replace('/(app)/home');
+            }
+          }
+        ]);
       }
-
-      Alert.alert('Success', 'Event updated successfully!');
-      router.back();
     } catch (error) {
-      console.error('Error updating event:', error);
-      Alert.alert('Error', 'Failed to update event');
+      console.error('Error:', error);
+      Alert.alert('Error', 'Failed to save event');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -245,11 +236,13 @@ export default function ActivityAddScreen() {
 
         <TouchableOpacity 
           style={[styles.button, isSubmitting && styles.buttonDisabled]} 
-          onPress={handleCreateEvent}
+          onPress={handleSubmit}
           disabled={isSubmitting}
         >
           <Text style={styles.buttonText}>
-            {isSubmitting ? 'Creating...' : 'Create Event'}
+            {isSubmitting 
+              ? (isEditing === '1' ? 'Updating...' : 'Creating...') 
+              : (isEditing === '1' ? 'Update Event' : 'Create Event')}
           </Text>
         </TouchableOpacity>
       </ScrollView>
