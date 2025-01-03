@@ -5,32 +5,45 @@ import { LinearGradient } from 'expo-linear-gradient';
 import UserFooter from '../../components/footer';
 import Colors from '../../constants/Colors';
 import { db } from '../../firebase_backup';
-import { collection, getDocs, doc, updateDoc, onSnapshot, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, onSnapshot, deleteDoc, query, where } from 'firebase/firestore';
 import { AuthContext } from '../../app/_layout';
 import EventCard from '../../components/EventCard';
 import { EventData } from '../types/event';
 
 const filterAndSortEvents = (eventsData: EventData[]) => {
   const now = new Date();
-  // Set to start of current day (midnight)
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-  // Delete old events from database
-  eventsData.forEach(event => {
+  // Delete old events and their notifications from database
+  eventsData.forEach(async event => {
     const eventDate = new Date(event.Date);
     if (eventDate < twentyFourHoursAgo && event.id) {
-      const eventRef = doc(db, 'Event', event.id);
-      deleteDoc(eventRef).catch(error => 
-        console.error('Error deleting old event:', error)
-      );
+      try {
+        // First, delete all notifications related to this event
+        const notificationsRef = collection(db, 'Notifications');
+        const notificationsQuery = query(notificationsRef, where('eventId', '==', event.id));
+        const notificationsSnapshot = await getDocs(notificationsQuery);
+        
+        const deleteNotificationPromises = notificationsSnapshot.docs.map(doc => 
+          deleteDoc(doc.ref)
+        );
+        await Promise.all(deleteNotificationPromises);
+
+        // Then delete the event
+        const eventRef = doc(db, 'Event', event.id);
+        await deleteDoc(eventRef);
+
+        console.log(`Deleted event ${event.id} and its notifications`);
+      } catch (error) {
+        console.error('Error deleting event and notifications:', error);
+      }
     }
   });
 
   return eventsData
     .filter(event => {
       const eventDate = new Date(event.Date);
-      // Keep events from today onwards
       return eventDate >= twentyFourHoursAgo;
     })
     .sort((a, b) => {
