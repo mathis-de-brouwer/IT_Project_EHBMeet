@@ -53,9 +53,26 @@ export default function ActivityAddScreen() {
       try {
         const eventDoc = await getDoc(doc(db, 'Event', eventId as string));
         if (eventDoc.exists()) {
-          const eventData = eventDoc.data() as EventData;
-          setEvent(eventData);
-          setEventData(eventData); // Pre-fill form with existing data
+          const existingEvent = eventDoc.data() as EventData;
+          console.log("Fetched event data:", existingEvent); // Debug log
+          
+          // Set all existing event data, including participants
+          setEventData({
+            Event_Title: existingEvent.Event_Title,
+            Description: existingEvent.Description || '',
+            Date: existingEvent.Date,
+            Location: existingEvent.Location,
+            Max_Participants: existingEvent.Max_Participants,
+            Category_id: existingEvent.Category_id,
+            Phone_Number: existingEvent.Phone_Number || '',
+            User_ID: existingEvent.User_ID,
+            participants: existingEvent.participants || [], // Preserve participants
+          });
+          
+          // If there's a date, set it in the date picker
+          if (existingEvent.Date) {
+            setDate(new Date(existingEvent.Date));
+          }
         }
       } catch (error) {
         console.error('Error fetching event:', error);
@@ -63,8 +80,10 @@ export default function ActivityAddScreen() {
       }
     };
 
-    fetchEvent();
-  }, [eventId]);
+    if (isEditing === '1') {
+      fetchEvent();
+    }
+  }, [eventId, isEditing]);
 
   const resetForm = () => {
     setEventData(initialEventData);
@@ -86,7 +105,7 @@ export default function ActivityAddScreen() {
 
     try {
       // Validate required fields first
-      const requiredFields = ['Event_Title', 'Date', 'Location', 'Max_Participants'];
+      const requiredFields = ['Event_Title', 'Date', 'Location', 'Max_Participants', 'Category_id'];
       const missingFields = requiredFields.filter(field => !eventData[field as keyof EventData]);
       
       if (missingFields.length > 0) {
@@ -96,20 +115,32 @@ export default function ActivityAddScreen() {
       }
 
       if (isEditing === '1' && eventId) {
-        // Update existing event
+        // Get current event data first
         const eventRef = doc(db, 'Event', eventId as string);
-        await updateDoc(eventRef, eventData as any);
+        const eventDoc = await getDoc(eventRef);
+        const currentEvent = eventDoc.data();
 
-        // Send notifications to all participants
-        if (event?.participants?.length) {
-          const notificationPromises = event.participants.map(participantId => {
-            if (participantId === user?.User_ID) return null; // Skip owner
+        // Prepare update data while preserving existing fields
+        const updateData = {
+          ...eventData,
+          participants: currentEvent?.participants || [], // Preserve existing participants
+          Last_Modified: new Date().toISOString(),
+        };
+
+        // Update the event
+        await updateDoc(eventRef, updateData);
+        console.log("Event updated successfully"); // Debug log
+
+        // Send notifications to participants
+        if (currentEvent?.participants?.length) {
+          const notificationPromises = currentEvent.participants.map((participantId: string) => {
+            if (participantId === user?.User_ID) return null;
             
             const notificationData = {
               type: 'event_edited',
               userId: participantId,
               userName: user?.First_Name || 'Event Creator',
-              eventId: eventId as string,
+              eventId: eventId,
               eventTitle: eventData.Event_Title,
               createdAt: new Date().toISOString(),
               read: false

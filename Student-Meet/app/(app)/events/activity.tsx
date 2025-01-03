@@ -293,15 +293,27 @@ export default function EventDetailsScreen() {
         </View>
 
         {isCreator === '1' ? (
-          <TouchableOpacity 
-            style={[styles.deleteButton, isJoining && styles.buttonDisabled]}
-            onPress={handleDeleteEvent}
-            disabled={isJoining}
-          >
-            <Text style={styles.buttonText}>
-              Delete Event
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity 
+              style={styles.editButton}
+              onPress={() => router.push({
+                pathname: '/events/activity_add',
+                params: { 
+                  eventId: eventId,
+                  isEditing: '1'
+                }
+              })}
+            >
+              <Text style={styles.buttonText}>Edit Event</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.deleteButton}
+              onPress={handleDeleteEvent}
+            >
+              <Text style={styles.buttonText}>Delete Event</Text>
+            </TouchableOpacity>
+          </View>
         ) : (
           hasJoined ? (
             <TouchableOpacity 
@@ -419,11 +431,24 @@ const styles = StyleSheet.create({
     padding: 10,
     zIndex: 10,
   },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginBottom: 20,
+  },
+  editButton: {
+    flex: 1,
+    backgroundColor: Colors.secondary,
+    paddingVertical: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
   deleteButton: {
+    flex: 1,
     backgroundColor: Colors.error,
     paddingVertical: 15,
     borderRadius: 8,
     alignItems: 'center',
-    marginBottom: 20,
   },
 });
