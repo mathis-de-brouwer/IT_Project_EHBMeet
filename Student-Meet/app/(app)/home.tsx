@@ -1,20 +1,54 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert, RefreshControl, Modal, TextInput, GestureResponderEvent } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import UserFooter from '../../components/footer';
 import Colors from '../../constants/Colors';
 import { db } from '../../firebase_backup';
-import { collection, getDocs, doc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, onSnapshot, deleteDoc } from 'firebase/firestore';
 import { AuthContext } from '../../app/_layout';
 import EventCard from '../../components/EventCard';
 import { EventData } from '../types/event';
+
+const filterAndSortEvents = (eventsData: EventData[]) => {
+  const now = new Date();
+  // Set to start of current day (midnight)
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+  // Delete old events from database
+  eventsData.forEach(event => {
+    const eventDate = new Date(event.Date);
+    if (eventDate < twentyFourHoursAgo && event.id) {
+      const eventRef = doc(db, 'Event', event.id);
+      deleteDoc(eventRef).catch(error => 
+        console.error('Error deleting old event:', error)
+      );
+    }
+  });
+
+  return eventsData
+    .filter(event => {
+      const eventDate = new Date(event.Date);
+      // Keep events from today onwards
+      return eventDate >= twentyFourHoursAgo;
+    })
+    .sort((a, b) => {
+      const dateA = new Date(a.Date);
+      const dateB = new Date(b.Date);
+      return dateA.getTime() - dateB.getTime();
+    });
+};
 
 const Home = () => {
   const [events, setEvents] = useState<EventData[]>([]);
   const { user } = useContext(AuthContext);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<EventData[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     // Set up real-time listener for events
@@ -25,7 +59,9 @@ const Home = () => {
         id: doc.id,
         participants: doc.data().participants || []
       } as EventData));
-      setEvents(eventsData);
+
+      const filteredAndSortedEvents = filterAndSortEvents(eventsData);
+      setEvents(filteredAndSortedEvents);
     }, (error) => {
       console.error("Error listening to events: ", error);
     });
@@ -45,7 +81,15 @@ const Home = () => {
         id: doc.id,
         participants: doc.data().participants || []
       } as EventData));
-      setEvents(eventsData);
+
+      // Sort events by date
+      const sortedEvents = eventsData.sort((a, b) => {
+        const dateA = new Date(a.Date);
+        const dateB = new Date(b.Date);
+        return dateA.getTime() - dateB.getTime();
+      });
+
+      setEvents(sortedEvents);
       setRefreshing(false);
     };
 
@@ -56,6 +100,40 @@ const Home = () => {
     if (!selectedCategory) return events;
     return events.filter(event => event.Category_id === selectedCategory);
   }, [events, selectedCategory]);
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    const queryLower = query.toLowerCase();
+    const filtered = events.filter(event => 
+      event.Event_Title.toLowerCase().includes(queryLower) || 
+      event.User_ID.toLowerCase().includes(queryLower)
+    );
+    setSearchResults(filtered);
+  };
+
+  const renderEventCard = (event: EventData) => {
+    const eventDate = new Date(event.Date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set to start of day
+    const isPastEvent = eventDate < today; // Only true for events before today
+
+    return (
+      <EventCard 
+        key={event.id} 
+        event={event} 
+        style={isPastEvent ? styles.pastEvent : undefined}
+      />
+    );
+  };
+
+  const handleJoinEvent = async (e: GestureResponderEvent) => {
+    // ... rest of the code
+  };
 
   return (
     <View style={styles.container}>
@@ -127,13 +205,11 @@ const Home = () => {
           </TouchableOpacity>
         </View>
 
-        {filteredEvents.length > 0 ? (
-          filteredEvents.map((event, index) => (
-            <EventCard key={event.id || index} event={event} />
-          ))
-        ) : (
-          <Text style={styles.noEventsText}>No events found</Text>
-        )}
+        {searchResults.length > 0 ? 
+          searchResults.map((event) => renderEventCard(event))
+          :
+          filteredEvents.map((event) => renderEventCard(event))
+        }
       </ScrollView>
 
       <LinearGradient 
@@ -142,10 +218,47 @@ const Home = () => {
         pointerEvents="box-none"
       >
         <Text style={styles.title}>Student Meet</Text>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => setShowSearch(true)}>
           <FontAwesome name="search" size={24} color="white" />
         </TouchableOpacity>
       </LinearGradient>
+
+      <Modal
+        visible={showSearch}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowSearch(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.searchContainer}>
+            <View style={styles.searchHeader}>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search events..."
+                value={searchQuery}
+                onChangeText={handleSearch}
+                autoFocus
+              />
+              <TouchableOpacity 
+                style={styles.closeButton}
+                onPress={() => {
+                  setShowSearch(false);
+                  setSearchQuery('');
+                  setSearchResults([]);
+                }}
+              >
+                <FontAwesome name="times" size={24} color={Colors.text} />
+              </TouchableOpacity>
+            </View>
+            
+            {searchQuery.length > 0 && (
+              <Text style={styles.resultsText}>
+                {searchResults.length} results found
+              </Text>
+            )}
+          </View>
+        </View>
+      </Modal>
 
       <UserFooter />
     </View>
@@ -216,6 +329,48 @@ const styles = StyleSheet.create({
   },
   headerSpacer: {
     height: 140,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  searchContainer: {
+    backgroundColor: Colors.background,
+    paddingTop: 50,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  searchHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  searchInput: {
+    flex: 1,
+    height: 40,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    marginRight: 10,
+    fontSize: 16,
+  },
+  closeButton: {
+    padding: 5,
+  },
+  resultsText: {
+    color: Colors.placeholder,
+    marginBottom: 10,
+    fontSize: 14,
+  },
+  pastEvent: {
+    opacity: 0.5,
+    backgroundColor: '#f5f5f5',
   },
 });
 
