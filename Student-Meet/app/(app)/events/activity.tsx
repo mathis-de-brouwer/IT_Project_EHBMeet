@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { doc, updateDoc, arrayUnion, getDoc, deleteDoc } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, getDoc, deleteDoc, addDoc, collection } from 'firebase/firestore';
 import { db } from '../../../firebase_backup';
 import { EventData } from '../../types/event';
 import { AuthContext } from '../../_layout';
@@ -70,6 +70,19 @@ export default function EventDetailsScreen() {
           onPress: () => returnTo === 'agenda' ? router.push('/(app)/agenda') : router.push('/(app)/home')
         }
       ]);
+
+      // Add notification
+      const notificationData = {
+        type: 'join_event',
+        userId: event.User_ID, // Event creator's ID
+        userName: user.email,
+        eventId: eventId.toString(),
+        eventTitle: event.Event_Title,
+        createdAt: new Date().toISOString(),
+        read: false
+      };
+
+      await addDoc(collection(db, 'Notifications'), notificationData);
     } catch (error) {
       console.error('Error joining event:', error);
       Alert.alert('Error', 'Failed to join event. Please try again.');
@@ -110,6 +123,19 @@ export default function EventDetailsScreen() {
           onPress: () => returnTo === 'agenda' ? router.push('/(app)/agenda') : router.push('/(app)/home')
         }
       ]);
+
+      // Add notification
+      const notificationData = {
+        type: 'leave_event',
+        userId: event.User_ID,
+        userName: user.email,
+        eventId: eventId.toString(),
+        eventTitle: event.Event_Title,
+        createdAt: new Date().toISOString(),
+        read: false
+      };
+
+      await addDoc(collection(db, 'Notifications'), notificationData);
     } catch (error) {
       console.error('Error leaving event:', error);
       Alert.alert('Error', 'Failed to leave event. Please try again.');
@@ -127,6 +153,11 @@ export default function EventDetailsScreen() {
   };
 
   const handleDeleteEvent = async () => {
+    if (!event || !user) {
+      console.log("Missing event or user data");
+      return;
+    }
+
     Alert.alert(
       'Delete Event',
       'Are you sure you want to delete this event?',
@@ -140,7 +171,62 @@ export default function EventDetailsScreen() {
           style: 'destructive' as const,
           onPress: async () => {
             try {
+              console.log("Starting delete process...");
+              
+              // Store event details before deletion
+              const eventDetails = {
+                title: event.Event_Title,
+                id: eventId as string
+              };
+
+              // Create notification for owner
+              console.log("Creating owner notification...");
+              const ownerNotification = {
+                type: 'event_cancelled' as const,
+                userId: user.User_ID,
+                userName: 'You',
+                eventId: eventDetails.id,
+                eventTitle: eventDetails.title,
+                createdAt: new Date().toISOString(),
+                read: false
+              };
+              
+              const ownerNotifRef = await addDoc(collection(db, 'Notifications'), ownerNotification);
+              console.log("Owner notification created:", ownerNotifRef.id);
+
+              // Send notifications to all participants
+              const participants = [...(event.participants || [])];
+              console.log("Participants to notify:", participants);
+
+              if (participants.length > 0) {
+                const notificationPromises = participants.map(participantId => {
+                  if (participantId === user.User_ID) return null;
+                  
+                  console.log("Creating notification for participant:", participantId);
+                  const notificationData = {
+                    type: 'event_cancelled' as const,
+                    userId: participantId,
+                    userName: user.First_Name,
+                    eventId: eventDetails.id,
+                    eventTitle: eventDetails.title,
+                    createdAt: new Date().toISOString(),
+                    read: false
+                  };
+                  return addDoc(collection(db, 'Notifications'), notificationData);
+                });
+
+                const results = await Promise.all(notificationPromises.filter(Boolean));
+                console.log("Participant notifications created:", results.length);
+              }
+
+              // Small delay to ensure notifications are processed
+              await new Promise(resolve => setTimeout(resolve, 500));
+
+              // Delete the event
+              console.log("Deleting event...");
               await deleteDoc(doc(db, 'Event', eventId as string));
+              console.log("Event deleted successfully");
+
               Alert.alert('Success', 'Event deleted successfully', [
                 {
                   text: 'OK',
@@ -148,7 +234,7 @@ export default function EventDetailsScreen() {
                 }
               ]);
             } catch (error) {
-              console.error('Error deleting event:', error);
+              console.error('Error in delete process:', error);
               Alert.alert('Error', 'Failed to delete event');
             }
           }
@@ -208,15 +294,27 @@ export default function EventDetailsScreen() {
         </View>
 
         {isCreator === '1' ? (
-          <TouchableOpacity 
-            style={[styles.deleteButton, isJoining && styles.buttonDisabled]}
-            onPress={handleDeleteEvent}
-            disabled={isJoining}
-          >
-            <Text style={styles.buttonText}>
-              Delete Event
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity 
+              style={styles.editButton}
+              onPress={() => router.push({
+                pathname: '/events/activity_add',
+                params: { 
+                  eventId: eventId,
+                  isEditing: '1'
+                }
+              })}
+            >
+              <Text style={styles.buttonText}>Edit Event</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.deleteButton}
+              onPress={handleDeleteEvent}
+            >
+              <Text style={styles.buttonText}>Delete Event</Text>
+            </TouchableOpacity>
+          </View>
         ) : (
           hasJoined ? (
             <TouchableOpacity 
@@ -334,11 +432,24 @@ const styles = StyleSheet.create({
     padding: 10,
     zIndex: 10,
   },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+    marginBottom: 20,
+  },
+  editButton: {
+    flex: 1,
+    backgroundColor: Colors.secondary,
+    paddingVertical: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
   deleteButton: {
+    flex: 1,
     backgroundColor: Colors.error,
     paddingVertical: 15,
     borderRadius: 8,
     alignItems: 'center',
-    marginBottom: 20,
   },
 });

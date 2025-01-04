@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import Colors from '../../constants/Colors'; // Your color definitions
 import { useRouter } from 'expo-router';
-import { db } from '../../firebase_backup'; // Import the Firebase instance
+import { db, auth } from '../../firebase_backup'; // Import the Firebase instance
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { getAuth } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import CryptoJS from 'crypto-js';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -88,29 +89,63 @@ export default function RegisterScreen() {
         return;
       }
 
-      // Create user with Firebase Authentication
-      const auth = getAuth();
-      const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.Password);
-      const user = userCredential.user; // Firebase user object
+      // Check if email already exists
+      const usersRef = collection(db, "Users");
+      const q = query(usersRef, where("email", "==", userData.email.toLowerCase()));
+      const querySnapshot = await getDocs(q);
 
-      // Hash the password before storing it in Firestore (if needed)
-      const hashedPassword = CryptoJS.SHA256(userData.Password).toString();
+      if (!querySnapshot.empty) {
+        Alert.alert('Error', 'An account with this email already exists');
+        setIsRegistering(false);
+        return;
+      }
 
-      // Create user document in Firestore using the `user.uid` as the document ID
-      await setDoc(doc(db, "Users", user.uid), {
-        USER_ID: user.uid, // Add the user ID explicitly in the document
-        First_Name: userData.First_Name,
-        Second_name: userData.Second_name,
+      // Create Firebase Auth user first
+      let userCredential;
+      try {
+        userCredential = await createUserWithEmailAndPassword(
+          auth, 
+          userData.email.toLowerCase(), 
+          userData.Password
+        );
+      } catch (error: any) {
+        console.error("Detailed error:", error.code, error.message);
+        let errorMessage = 'Registration failed. Please try again.';
+        
+        switch (error.code) {
+          case 'auth/email-already-in-use':
+            errorMessage = 'This email is already registered.';
+            break;
+          case 'auth/invalid-email':
+            errorMessage = 'Invalid email address.';
+            break;
+          case 'auth/operation-not-allowed':
+            errorMessage = 'Email/password accounts are not enabled. Please contact support.';
+            break;
+          case 'auth/weak-password':
+            errorMessage = 'Please choose a stronger password.';
+            break;
+        }
+        
+        Alert.alert('Error', errorMessage);
+        setIsRegistering(false);
+        return;
+      }
+
+      // Now userCredential is accessible here
+      const uniqueUserId = userCredential.user.uid;
+
+      // Create user document in Firestore
+      const { Password, ...userDataWithoutPassword } = userData;
+      const hashedPassword = CryptoJS.SHA256(Password).toString();
+      
+      await setDoc(doc(db, "Users", uniqueUserId), {
+        ...userDataWithoutPassword,
         email: userData.email.toLowerCase(),
-        Password: hashedPassword,  // Store the hashed password
-        Blacklisted: false,
-        Description: '',
-        Discord_name: '',
-        Profile_Picture: '',
-        Steam_name: '',
+        Password: hashedPassword,
+        User_ID: uniqueUserId
       });
 
-      console.log("User registered and added to Firestore with UID:", user.uid);
       Alert.alert('Success', 'Registration successful!', [
         { text: 'OK', onPress: () => router.push('/(auth)/login') }
       ]);

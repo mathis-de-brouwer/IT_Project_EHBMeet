@@ -1,8 +1,8 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { db } from '../../../firebase_backup';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, doc, getDoc } from 'firebase/firestore';
 import Colors from '../../../constants/Colors';
 import { AuthContext } from '../../_layout';
 import UserFooter from '../../../components/footer';
@@ -20,12 +20,15 @@ interface EventData {
   Max_Participants: string;
   Phone_Number?: string;
   User_ID: string;
+  participants?: string[];
 }
 
 export default function ActivityAddScreen() {
   const router = useRouter();
   const { user } = useContext(AuthContext);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [event, setEvent] = useState<EventData | null>(null);
+  const { eventId, isEditing } = useLocalSearchParams();
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [date, setDate] = useState(new Date());
   
@@ -43,6 +46,45 @@ export default function ActivityAddScreen() {
   
   const [eventData, setEventData] = useState<EventData>(initialEventData);
 
+  useEffect(() => {
+    const fetchEvent = async () => {
+      if (!eventId) return;
+      
+      try {
+        const eventDoc = await getDoc(doc(db, 'Event', eventId as string));
+        if (eventDoc.exists()) {
+          const existingEvent = eventDoc.data() as EventData;
+          console.log("Fetched event data:", existingEvent); // Debug log
+          
+          // Set all existing event data, including participants
+          setEventData({
+            Event_Title: existingEvent.Event_Title,
+            Description: existingEvent.Description || '',
+            Date: existingEvent.Date,
+            Location: existingEvent.Location,
+            Max_Participants: existingEvent.Max_Participants,
+            Category_id: existingEvent.Category_id,
+            Phone_Number: existingEvent.Phone_Number || '',
+            User_ID: existingEvent.User_ID,
+            participants: existingEvent.participants || [], // Preserve participants
+          });
+          
+          // If there's a date, set it in the date picker
+          if (existingEvent.Date) {
+            setDate(new Date(existingEvent.Date));
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching event:', error);
+        Alert.alert('Error', 'Failed to load event data');
+      }
+    };
+
+    if (isEditing === '1') {
+      fetchEvent();
+    }
+  }, [eventId, isEditing]);
+
   const resetForm = () => {
     setEventData(initialEventData);
   };
@@ -57,13 +99,13 @@ export default function ActivityAddScreen() {
     }
   };
 
-  const handleCreateEvent = async () => {
+  const handleSubmit = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
 
     try {
-      // Validate required fields
-      const requiredFields = ['Event_Title', 'Date', 'Location', 'Max_Participants'];
+      // Validate required fields first
+      const requiredFields = ['Event_Title', 'Date', 'Location', 'Max_Participants', 'Category_id'];
       const missingFields = requiredFields.filter(field => !eventData[field as keyof EventData]);
       
       if (missingFields.length > 0) {
@@ -72,35 +114,78 @@ export default function ActivityAddScreen() {
         return;
       }
 
-      // Add the event to Firestore
-      const eventRef = await addDoc(collection(db, "Event"), {
-        ...eventData,
-        User_ID: user?.User_ID,
-        Created_At: new Date().toISOString(),
-      });
+      if (isEditing === '1' && eventId) {
+        // Get current event data first
+        const eventRef = doc(db, 'Event', eventId as string);
+        const eventDoc = await getDoc(eventRef);
+        const currentEvent = eventDoc.data();
 
-      console.log("Event created with ID: ", eventRef.id);
-      Alert.alert('Success', 'Event created successfully!', [
-        { 
-          text: 'OK', 
-          onPress: () => {
-            resetForm();  // Reset the form
-            router.replace('/(app)/home');  // Navigate home
-          }
+        // Prepare update data while preserving existing fields
+        const updateData = {
+          ...eventData,
+          participants: currentEvent?.participants || [], // Preserve existing participants
+          Last_Modified: new Date().toISOString(),
+        };
+
+        // Update the event
+        await updateDoc(eventRef, updateData);
+        console.log("Event updated successfully"); // Debug log
+
+        // Send notifications to participants
+        if (currentEvent?.participants?.length) {
+          const notificationPromises = currentEvent.participants.map((participantId: string) => {
+            if (participantId === user?.User_ID) return null;
+            
+            const notificationData = {
+              type: 'event_edited',
+              userId: participantId,
+              userName: user?.First_Name || 'Event Creator',
+              eventId: eventId,
+              eventTitle: eventData.Event_Title,
+              createdAt: new Date().toISOString(),
+              read: false
+            };
+            return addDoc(collection(db, 'Notifications'), notificationData);
+          });
+
+          await Promise.all(notificationPromises.filter(Boolean));
         }
-      ]);
+
+        Alert.alert('Success', 'Event updated successfully!', [
+          { text: 'OK', onPress: () => router.back() }
+        ]);
+      } else {
+        // Create new event
+        const eventRef = await addDoc(collection(db, "Event"), {
+          ...eventData,
+          User_ID: user?.User_ID,
+          Created_At: new Date().toISOString(),
+        });
+
+        Alert.alert('Success', 'Event created successfully!', [
+          { 
+            text: 'OK', 
+            onPress: () => {
+              resetForm();
+              router.replace('/(app)/home');
+            }
+          }
+        ]);
+      }
     } catch (error) {
-      console.error("Error creating event: ", error);
-      Alert.alert('Error', 'Failed to create event. Please try again.');
+      console.error('Error:', error);
+      Alert.alert('Error', 'Failed to save event');
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const title = eventId ? 'Edit Event' : 'Create New Event';
+
   return (
     <View style={styles.mainContainer}>
       <ScrollView style={styles.container}>
-        <Text style={styles.title}>Create New Event</Text>
+        <Text style={styles.title}>{title}</Text>
         
         <TextInput
           style={styles.input}
@@ -182,11 +267,13 @@ export default function ActivityAddScreen() {
 
         <TouchableOpacity 
           style={[styles.button, isSubmitting && styles.buttonDisabled]} 
-          onPress={handleCreateEvent}
+          onPress={handleSubmit}
           disabled={isSubmitting}
         >
           <Text style={styles.buttonText}>
-            {isSubmitting ? 'Creating...' : 'Create Event'}
+            {isSubmitting 
+              ? (isEditing === '1' ? 'Updating...' : 'Creating...') 
+              : (isEditing === '1' ? 'Update Event' : 'Create Event')}
           </Text>
         </TouchableOpacity>
       </ScrollView>

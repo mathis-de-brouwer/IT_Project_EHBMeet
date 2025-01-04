@@ -1,29 +1,30 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, StyleProp, ViewStyle, GestureResponderEvent } from 'react-native';
 import { EventData } from '../app/types/event';
 import Colors from '../constants/Colors';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { doc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, getDoc, addDoc, collection } from 'firebase/firestore';
 import { db } from '../firebase_backup';
 import { useContext } from 'react';
 import { AuthContext } from '../app/_layout';
 
 interface EventCardProps {
   event: EventData;
+  style?: StyleProp<ViewStyle>;
 }
 
-const EventCard = ({ event }: EventCardProps) => {
+const EventCard = ({ event, style }: EventCardProps) => {
   const router = useRouter();
   const { user } = useContext(AuthContext);
   const [isJoining, setIsJoining] = useState(false);
   const [hasJoined, setHasJoined] = useState(event.participants?.includes(user?.User_ID || '') || false);
   const [participantCount, setParticipantCount] = useState(event.participants?.length || 0);
   const isFull = participantCount >= parseInt(event.Max_Participants);
+  const isCreator = event.User_ID === user?.User_ID;
 
-  const handleJoinEvent = async (e: any) => {
-    e.stopPropagation(); // Prevent navigation to details
-    if (!event || !user || isJoining) return;
+  const handleJoinEvent = async (e: GestureResponderEvent) => {
+    if (!event || !user || isJoining || !event.id) return;
     setIsJoining(true);
 
     try {
@@ -32,9 +33,20 @@ const EventCard = ({ event }: EventCardProps) => {
         participants: arrayUnion(user.User_ID)
       });
 
+      const notificationData = {
+        type: 'join_event',
+        userId: event.User_ID,
+        userName: user.email,
+        eventId: event.id,
+        eventTitle: event.Event_Title,
+        createdAt: new Date().toISOString(),
+        read: false
+      };
+
+      await addDoc(collection(db, 'Notifications'), notificationData);
+
       setHasJoined(true);
       setParticipantCount(prev => prev + 1);
-      Alert.alert('Success', 'You have joined the event!');
     } catch (error) {
       console.error('Error joining event:', error);
       Alert.alert('Error', 'Failed to join event');
@@ -44,8 +56,8 @@ const EventCard = ({ event }: EventCardProps) => {
   };
 
   const handleLeaveEvent = async (e: any) => {
-    e.stopPropagation(); // Prevent navigation to details
-    if (!event || !user || isJoining) return;
+    e.stopPropagation();
+    if (!event || !user || isJoining || !event.id) return;
     setIsJoining(true);
 
     try {
@@ -58,9 +70,20 @@ const EventCard = ({ event }: EventCardProps) => {
         participants: newParticipants
       });
 
+      const notificationData = {
+        type: 'leave_event',
+        userId: event.User_ID,
+        userName: user.email,
+        eventId: event.id,
+        eventTitle: event.Event_Title,
+        createdAt: new Date().toISOString(),
+        read: false
+      };
+
+      await addDoc(collection(db, 'Notifications'), notificationData);
+
       setHasJoined(false);
       setParticipantCount(prev => prev - 1);
-      Alert.alert('Success', 'You have left the event');
     } catch (error) {
       console.error('Error leaving event:', error);
       Alert.alert('Error', 'Failed to leave event');
@@ -76,41 +99,62 @@ const EventCard = ({ event }: EventCardProps) => {
         params: { eventId: event.id }
       })}
       activeOpacity={0.7}
+      style={[styles.card, style]}
     >
-      <View style={styles.card}>
-        <View style={styles.cardContent}>
-          <Text style={styles.eventTitle}>{event.Event_Title}</Text>
-          <Text style={styles.eventDate}>{event.Date}</Text>
-          <Text style={styles.eventLocation}>📍 {event.Location}</Text>
-          <Text style={styles.eventDescription} numberOfLines={2}>
-            {event.Description || 'No description available'}
+      <View style={styles.cardContent}>
+        <Text style={styles.eventTitle}>{event.Event_Title}</Text>
+        <Text style={styles.eventDate}>{event.Date}</Text>
+        <Text style={styles.eventLocation}>📍 {event.Location}</Text>
+        <Text style={styles.eventDescription} numberOfLines={2}>
+          {event.Description || 'No description available'}
+        </Text>
+        <View style={styles.cardFooter}>
+          <Text style={styles.participants}>
+            <FontAwesome name="users" size={16} color="#666" /> 
+            {participantCount}/{event.Max_Participants}
           </Text>
-          <View style={styles.cardFooter}>
-            <Text style={styles.participants}>
-              <FontAwesome name="users" size={16} color="#666" /> 
-              {participantCount}/{event.Max_Participants}
-            </Text>
-            
-            {hasJoined ? (
+          
+          {isCreator ? (
+            <View style={styles.buttonContainer}>
               <TouchableOpacity 
-                style={[styles.leaveButton, isJoining && styles.buttonDisabled]}
-                onPress={handleLeaveEvent}
-                disabled={isJoining}
+                style={styles.editButton}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  router.push({
+                    pathname: '/events/activity_add',
+                    params: { 
+                      eventId: event.id,
+                      isEditing: '1'
+                    }
+                  });
+                }}
               >
-                <Text style={styles.buttonText}>Leave</Text>
+                <Text style={styles.buttonText}>Edit</Text>
               </TouchableOpacity>
-            ) : (
-              <TouchableOpacity 
-                style={[styles.joinButton, (isJoining || isFull) && styles.buttonDisabled]}
-                onPress={handleJoinEvent}
-                disabled={isJoining || isFull}
-              >
-                <Text style={styles.buttonText}>
-                  {isFull ? 'Full' : 'Join'}
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
+            </View>
+          ) : (
+            <>
+              {hasJoined ? (
+                <TouchableOpacity 
+                  style={[styles.leaveButton, isJoining && styles.buttonDisabled]}
+                  onPress={handleLeaveEvent}
+                  disabled={isJoining}
+                >
+                  <Text style={styles.buttonText}>Leave</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity 
+                  style={[styles.joinButton, (isJoining || isFull) && styles.buttonDisabled]}
+                  onPress={handleJoinEvent}
+                  disabled={isJoining || isFull}
+                >
+                  <Text style={styles.buttonText}>
+                    {isFull ? 'Full' : 'Join'}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </>
+          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -204,6 +248,20 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  pastEvent: {
+    opacity: 0.5,
+    backgroundColor: '#f5f5f5',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  editButton: {
+    backgroundColor: Colors.secondary,
+    paddingHorizontal: 15,
+    paddingVertical: 6,
+    borderRadius: 15,
   },
 });
 

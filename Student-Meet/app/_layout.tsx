@@ -23,12 +23,10 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const storedUserData = await AsyncStorage.getItem('userData');
         if (storedUserData) {
-          // Add timestamp check for session expiry (24 hours)
           const lastLoginTime = await AsyncStorage.getItem('lastLoginTime');
           const currentTime = new Date().getTime();
           
           if (lastLoginTime && (currentTime - parseInt(lastLoginTime)) > 24 * 60 * 60 * 1000) {
-            // Session expired, clear storage
             await AsyncStorage.multiRemove(['userData', 'lastLoginTime']);
             setUser(null);
             return;
