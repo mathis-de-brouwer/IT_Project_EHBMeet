@@ -6,9 +6,10 @@ export interface UserData {
   Password: string;
   Blacklisted: boolean;
   Description?: string;
-  Discord_name?: string;
   Profile_Picture?: string;
   Steam_name?: string;
+  Discord_name?: string;
+  role: 'student' | 'admin';
 }
 
 // Add a default export with an empty component to satisfy the router

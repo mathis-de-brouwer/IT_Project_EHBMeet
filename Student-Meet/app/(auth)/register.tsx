@@ -43,6 +43,9 @@ export default function RegisterScreen() {
     setIsRegistering(true);
 
     try {
+
+      
+
       // Validate required fields
       if (!userData.First_Name || !userData.Second_name || !userData.email || !userData.Password || !confirmPassword) {
         Alert.alert('Error', 'Please fill in all required fields');
@@ -143,7 +146,8 @@ export default function RegisterScreen() {
         ...userDataWithoutPassword,
         email: userData.email.toLowerCase(),
         Password: hashedPassword,
-        User_ID: uniqueUserId
+        User_ID: uniqueUserId,
+        role: 'student',
       });
 
       Alert.alert('Success', 'Registration successful!', [

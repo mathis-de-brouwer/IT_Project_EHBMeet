@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'reac
 import Colors from '../../constants/Colors';
 import { useRouter } from 'expo-router';
 import { db, auth } from '../../firebase_backup';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import CryptoJS from 'crypto-js';
 import { AuthContext } from '../_layout';
 import { UserData } from '../../app/types/user';
@@ -48,6 +48,14 @@ export default function LoginScreen() {
       
       const userDoc = querySnapshot.docs[0];
       const userData = userDoc.data();
+
+      // Ensure role exists (for backward compatibility)
+      if (!userData.role) {
+        await updateDoc(doc(db, "Users", userDoc.id), {
+          role: 'student'
+        });
+        userData.role = 'student';
+      }
 
       // Store user data and login time
       await AsyncStorage.setItem('userData', JSON.stringify(userData));
