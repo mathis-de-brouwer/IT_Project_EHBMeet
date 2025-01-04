@@ -7,7 +7,6 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import CryptoJS from 'crypto-js';
 import { AuthContext } from '../_layout';
 import { UserData } from '../../app/types/user';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -48,12 +47,10 @@ export default function LoginScreen() {
       const hashedPassword = CryptoJS.SHA256(password).toString();
 
       if (userData.Password === hashedPassword) {
-        // Store user data in AsyncStorage
-        await AsyncStorage.setItem('userData', JSON.stringify(userData));
-        
+        // Cast the Firestore data to UserData type
         signIn(userData as UserData);
         console.log('Login successful for user:', userDoc.id);
-        router.push('/home');
+        router.replace('/home');
       } else {
         Alert.alert('Error', 'Incorrect password');
       }

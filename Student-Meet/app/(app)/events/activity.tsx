@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { doc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, getDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../../firebase_backup';
 import { EventData } from '../../types/event';
 import { AuthContext } from '../../_layout';
@@ -11,7 +11,7 @@ import { useContext } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function EventDetailsScreen() {
-  const { eventId } = useLocalSearchParams();
+  const { eventId, returnTo, isCreator } = useLocalSearchParams();
   const [event, setEvent] = useState<EventData | null>(null);
   const [isJoining, setIsJoining] = useState(false);
   const { user } = useContext(AuthContext);
@@ -32,6 +32,7 @@ export default function EventDetailsScreen() {
     };
     fetchEventDetails();
   }, [eventId, user]);
+  
 
   const handleJoinEvent = async () => {
     if (!event || !user || isJoining) return;
@@ -42,27 +43,31 @@ export default function EventDetailsScreen() {
       const eventDoc = await getDoc(eventRef);
       const currentEvent = eventDoc.data();
 
-      // Check if user is already joined
       if (currentEvent?.participants?.includes(user.User_ID)) {
         Alert.alert('Error', 'You have already joined this event');
         return;
       }
 
-      // Check if event is full
       if (currentEvent?.participants?.length >= parseInt(event.Max_Participants)) {
         Alert.alert('Error', 'This event is already full');
         return;
       }
 
-      // Add user to participants
       await updateDoc(eventRef, {
         participants: arrayUnion(user.User_ID)
       });
 
+      setEvent(prev => ({
+        ...prev!,
+        participants: [...(prev?.participants || []), user.User_ID]
+      }));
+      setParticipantCount(prev => prev + 1);
+      setHasJoined(true);
+
       Alert.alert('Success', 'You have successfully joined the event!', [
         { 
           text: 'OK', 
-          onPress: () => router.replace('/(app)/home')  // Go back to home instead
+          onPress: () => returnTo === 'agenda' ? router.push('/(app)/agenda') : router.push('/(app)/home')
         }
       ]);
     } catch (error) {
@@ -87,18 +92,69 @@ export default function EventDetailsScreen() {
         return;
       }
 
+      const newParticipants = currentEvent.participants.filter((id: string) => id !== user.User_ID);
       await updateDoc(eventRef, {
-        participants: currentEvent.participants.filter((id: string) => id !== user.User_ID)
+        participants: newParticipants
       });
 
-      Alert.alert('Success', 'You have left the event');
-      router.back();
+      setEvent(prev => ({
+        ...prev!,
+        participants: newParticipants
+      }));
+      setParticipantCount(prev => prev - 1);
+      setHasJoined(false);
+
+      Alert.alert('Success', 'You have left the event', [
+        {
+          text: 'OK',
+          onPress: () => returnTo === 'agenda' ? router.push('/(app)/agenda') : router.push('/(app)/home')
+        }
+      ]);
     } catch (error) {
       console.error('Error leaving event:', error);
       Alert.alert('Error', 'Failed to leave event. Please try again.');
     } finally {
       setIsJoining(false);
     }
+  };
+
+  const handleBack = () => {
+    if (returnTo === 'agenda') {
+      router.push('/(app)/agenda');
+    } else {
+      router.push('/(app)/home');
+    }
+  };
+
+  const handleDeleteEvent = async () => {
+    Alert.alert(
+      'Delete Event',
+      'Are you sure you want to delete this event?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel' as const
+        },
+        {
+          text: 'Delete',
+          style: 'destructive' as const,
+          onPress: async () => {
+            try {
+              await deleteDoc(doc(db, 'Event', eventId as string));
+              Alert.alert('Success', 'Event deleted successfully', [
+                {
+                  text: 'OK',
+                  onPress: () => returnTo === 'agenda' ? router.push('/(app)/agenda') : router.push('/(app)/home')
+                }
+              ]);
+            } catch (error) {
+              console.error('Error deleting event:', error);
+              Alert.alert('Error', 'Failed to delete event');
+            }
+          }
+        }
+      ]
+    );
   };
 
   if (!event) {
@@ -111,11 +167,8 @@ export default function EventDetailsScreen() {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity 
-        style={styles.backButton} 
-        onPress={() => router.replace('/(app)/home')}
-      >
-        <Ionicons name="arrow-back" size={24} color={Colors.text} />
+      <TouchableOpacity onPress={handleBack}>
+        <Ionicons name="arrow-back" size={24} color="black" />
       </TouchableOpacity>
       <ScrollView style={styles.content}>
         <Text style={styles.title}>{event.Event_Title}</Text>
@@ -154,26 +207,38 @@ export default function EventDetailsScreen() {
           </Text>
         </View>
 
-        {hasJoined ? (
+        {isCreator === '1' ? (
           <TouchableOpacity 
-            style={[styles.leaveButton, isJoining && styles.buttonDisabled]}
-            onPress={handleLeaveEvent}
+            style={[styles.deleteButton, isJoining && styles.buttonDisabled]}
+            onPress={handleDeleteEvent}
             disabled={isJoining}
           >
             <Text style={styles.buttonText}>
-              {isJoining ? 'Leaving...' : 'Leave Event'}
+              Delete Event
             </Text>
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity 
-            style={[styles.joinButton, isJoining && styles.buttonDisabled]}
-            onPress={handleJoinEvent}
-            disabled={isJoining || participantCount >= parseInt(event.Max_Participants)}
-          >
-            <Text style={styles.buttonText}>
-              {isJoining ? 'Joining...' : 'Join Event'}
-            </Text>
-          </TouchableOpacity>
+          hasJoined ? (
+            <TouchableOpacity 
+              style={[styles.leaveButton, isJoining && styles.buttonDisabled]}
+              onPress={handleLeaveEvent}
+              disabled={isJoining}
+            >
+              <Text style={styles.buttonText}>
+                {isJoining ? 'Leaving...' : 'Leave Event'}
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity 
+              style={[styles.joinButton, isJoining && styles.buttonDisabled]}
+              onPress={handleJoinEvent}
+              disabled={isJoining || participantCount >= parseInt(event.Max_Participants)}
+            >
+              <Text style={styles.buttonText}>
+                {isJoining ? 'Joining...' : 'Join Event'}
+              </Text>
+            </TouchableOpacity>
+          )
         )}
       </ScrollView>
       <UserFooter />
@@ -268,5 +333,12 @@ const styles = StyleSheet.create({
     left: 20,
     padding: 10,
     zIndex: 10,
+  },
+  deleteButton: {
+    backgroundColor: Colors.error,
+    paddingVertical: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 20,
   },
 });

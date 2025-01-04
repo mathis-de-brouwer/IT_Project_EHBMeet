@@ -9,9 +9,4 @@ export interface UserData {
   Discord_name?: string;
   Profile_Picture?: string;
   Steam_name?: string;
-}
-
-// Add a default export with an empty component to satisfy the router
-export default function User() {
-  return null;
 } 
