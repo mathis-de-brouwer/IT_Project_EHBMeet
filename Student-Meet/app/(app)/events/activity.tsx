@@ -146,6 +146,8 @@ export default function EventDetailsScreen() {
   const handleBack = () => {
     if (returnTo === 'agenda') {
       router.push('/(app)/agenda');
+    } else if (returnTo === 'admin') {
+      router.push('/(app)/(admin)/events');
     } else {
       router.push('/(app)/home');
     }
@@ -292,7 +294,7 @@ export default function EventDetailsScreen() {
           </Text>
         </View>
 
-        {isCreator === '1' ? (
+        {returnTo === 'admin' ? (
           <View style={styles.buttonContainer}>
             <TouchableOpacity 
               style={styles.editButton}
@@ -315,26 +317,50 @@ export default function EventDetailsScreen() {
             </TouchableOpacity>
           </View>
         ) : (
-          hasJoined ? (
-            <TouchableOpacity 
-              style={[styles.leaveButton, isJoining && styles.buttonDisabled]}
-              onPress={handleLeaveEvent}
-              disabled={isJoining}
-            >
-              <Text style={styles.buttonText}>
-                {isJoining ? 'Leaving...' : 'Leave Event'}
-              </Text>
-            </TouchableOpacity>
+          isCreator === '1' ? (
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity 
+                style={styles.editButton}
+                onPress={() => router.push({
+                  pathname: '/events/activity_add',
+                  params: { 
+                    eventId: eventId,
+                    isEditing: '1'
+                  }
+                })}
+              >
+                <Text style={styles.buttonText}>Edit Event</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.deleteButton}
+                onPress={handleDeleteEvent}
+              >
+                <Text style={styles.buttonText}>Delete Event</Text>
+              </TouchableOpacity>
+            </View>
           ) : (
-            <TouchableOpacity 
-              style={[styles.joinButton, isJoining && styles.buttonDisabled]}
-              onPress={handleJoinEvent}
-              disabled={isJoining || participantCount >= parseInt(event.Max_Participants)}
-            >
-              <Text style={styles.buttonText}>
-                {isJoining ? 'Joining...' : 'Join Event'}
-              </Text>
-            </TouchableOpacity>
+            hasJoined ? (
+              <TouchableOpacity 
+                style={[styles.leaveButton, isJoining && styles.buttonDisabled]}
+                onPress={handleLeaveEvent}
+                disabled={isJoining}
+              >
+                <Text style={styles.buttonText}>
+                  {isJoining ? 'Leaving...' : 'Leave Event'}
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity 
+                style={[styles.joinButton, isJoining && styles.buttonDisabled]}
+                onPress={handleJoinEvent}
+                disabled={isJoining || participantCount >= parseInt(event.Max_Participants)}
+              >
+                <Text style={styles.buttonText}>
+                  {isJoining ? 'Joining...' : 'Join Event'}
+                </Text>
+              </TouchableOpacity>
+            )
           )
         )}
       </ScrollView>

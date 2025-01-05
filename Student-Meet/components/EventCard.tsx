@@ -4,7 +4,7 @@ import { EventData } from '../app/types/event';
 import Colors from '../constants/Colors';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { doc, updateDoc, arrayUnion, getDoc, addDoc, collection } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, getDoc, addDoc, collection, deleteDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase_backup';
 import { useContext } from 'react';
 import { AuthContext } from '../app/_layout';
@@ -12,9 +12,10 @@ import { AuthContext } from '../app/_layout';
 interface EventCardProps {
   event: EventData;
   style?: StyleProp<ViewStyle>;
+  isAdmin?: boolean;
 }
 
-const EventCard = ({ event, style }: EventCardProps) => {
+const EventCard = ({ event, style, isAdmin }: EventCardProps) => {
   const router = useRouter();
   const { user } = useContext(AuthContext);
   const [isJoining, setIsJoining] = useState(false);
@@ -92,11 +93,58 @@ const EventCard = ({ event, style }: EventCardProps) => {
     }
   };
 
+  const handleDeleteEvent = async () => {
+    if (!event.id) return;
+    
+    Alert.alert(
+      'Delete Event',
+      'Are you sure you want to delete this event?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel'
+        },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // First, delete all notifications related to this event
+              const notificationsRef = collection(db, 'Notifications');
+              const notificationsQuery = query(notificationsRef, where('eventId', '==', event.id));
+              const notificationsSnapshot = await getDocs(notificationsQuery);
+              
+              const deleteNotificationPromises = notificationsSnapshot.docs.map(doc => 
+                deleteDoc(doc.ref)
+              );
+              await Promise.all(deleteNotificationPromises);
+
+              // Then delete the event
+              if (event.id) {
+                await deleteDoc(doc(db, 'Event', event.id));
+                Alert.alert('Success', 'Event deleted successfully');
+              }
+              
+              // Optionally refresh the events list
+              router.replace('/(app)/(admin)/events');
+            } catch (error) {
+              console.error('Error deleting event:', error);
+              Alert.alert('Error', 'Failed to delete event. Please try again.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   return (
     <TouchableOpacity 
       onPress={() => router.push({
         pathname: '/events/activity' as any,
-        params: { eventId: event.id }
+        params: { 
+          eventId: event.id,
+          returnTo: isAdmin ? 'admin' : undefined 
+        }
       })}
       activeOpacity={0.7}
       style={[styles.card, style]}
@@ -114,7 +162,7 @@ const EventCard = ({ event, style }: EventCardProps) => {
             {participantCount}/{event.Max_Participants}
           </Text>
           
-          {isCreator ? (
+          {isAdmin ? (
             <View style={styles.buttonContainer}>
               <TouchableOpacity 
                 style={styles.editButton}
@@ -131,27 +179,59 @@ const EventCard = ({ event, style }: EventCardProps) => {
               >
                 <Text style={styles.buttonText}>Edit</Text>
               </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={styles.deleteButton}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleDeleteEvent();
+                }}
+              >
+                <Text style={styles.buttonText}>Delete</Text>
+              </TouchableOpacity>
             </View>
           ) : (
             <>
-              {hasJoined ? (
-                <TouchableOpacity 
-                  style={[styles.leaveButton, isJoining && styles.buttonDisabled]}
-                  onPress={handleLeaveEvent}
-                  disabled={isJoining}
-                >
-                  <Text style={styles.buttonText}>Leave</Text>
-                </TouchableOpacity>
+              {isCreator ? (
+                <View style={styles.buttonContainer}>
+                  <TouchableOpacity 
+                    style={styles.editButton}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      router.push({
+                        pathname: '/events/activity_add',
+                        params: { 
+                          eventId: event.id,
+                          isEditing: '1'
+                        }
+                      });
+                    }}
+                  >
+                    <Text style={styles.buttonText}>Edit</Text>
+                  </TouchableOpacity>
+                </View>
               ) : (
-                <TouchableOpacity 
-                  style={[styles.joinButton, (isJoining || isFull) && styles.buttonDisabled]}
-                  onPress={handleJoinEvent}
-                  disabled={isJoining || isFull}
-                >
-                  <Text style={styles.buttonText}>
-                    {isFull ? 'Full' : 'Join'}
-                  </Text>
-                </TouchableOpacity>
+                <>
+                  {hasJoined ? (
+                    <TouchableOpacity 
+                      style={[styles.leaveButton, isJoining && styles.buttonDisabled]}
+                      onPress={handleLeaveEvent}
+                      disabled={isJoining}
+                    >
+                      <Text style={styles.buttonText}>Leave</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity 
+                      style={[styles.joinButton, (isJoining || isFull) && styles.buttonDisabled]}
+                      onPress={handleJoinEvent}
+                      disabled={isJoining || isFull}
+                    >
+                      <Text style={styles.buttonText}>
+                        {isFull ? 'Full' : 'Join'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </>
               )}
             </>
           )}
@@ -263,6 +343,12 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 15,
   },
+  deleteButton: {
+    backgroundColor: Colors.error,
+    paddingHorizontal: 15,
+    paddingVertical: 6,
+    borderRadius: 15,
+  },
 });
 
-export default EventCard; 
+export default EventCard;

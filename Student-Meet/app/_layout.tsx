@@ -12,37 +12,12 @@ export const AuthContext = React.createContext({
 });
 
 // Auth provider component
-function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserData | null>(null);
   const rootSegment = useSegments()[0];
   const router = useRouter();
 
-  useEffect(() => {
-    // Check for stored user data when app loads
-    const loadStoredUser = async () => {
-      try {
-        const storedUserData = await AsyncStorage.getItem('userData');
-        if (storedUserData) {
-          const lastLoginTime = await AsyncStorage.getItem('lastLoginTime');
-          const currentTime = new Date().getTime();
-          
-          if (lastLoginTime && (currentTime - parseInt(lastLoginTime)) > 24 * 60 * 60 * 1000) {
-            await AsyncStorage.multiRemove(['userData', 'lastLoginTime']);
-            setUser(null);
-            return;
-          }
-          
-          const userData = JSON.parse(storedUserData);
-          setUser(userData);
-        }
-      } catch (error) {
-        console.error("Error reading stored user data:", error);
-        setUser(null);
-      }
-    };
-
-    loadStoredUser();
-  }, []);
+  // Remove the loadStoredUser useEffect - we'll handle this in login screen instead
 
   useEffect(() => {
     if (!user && rootSegment !== "(auth)") {
@@ -94,4 +69,4 @@ export default function RootLayout() {
       </Stack>
     </AuthProvider>
   );
-} 
+}
