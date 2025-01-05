@@ -17,6 +17,33 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
+    // Check for stored user data when app loads
+    const loadStoredUser = async () => {
+      try {
+        const storedUserData = await AsyncStorage.getItem('userData');
+        if (storedUserData) {
+          const lastLoginTime = await AsyncStorage.getItem('lastLoginTime');
+          const currentTime = new Date().getTime();
+          
+          if (lastLoginTime && (currentTime - parseInt(lastLoginTime)) > 24 * 60 * 60 * 1000) {
+            await AsyncStorage.multiRemove(['userData', 'lastLoginTime']);
+            setUser(null);
+            return;
+          }
+          
+          const userData = JSON.parse(storedUserData);
+          setUser(userData);
+        }
+      } catch (error) {
+        console.error("Error reading stored user data:", error);
+        setUser(null);
+      }
+    };
+
+    loadStoredUser();
+  }, []);
+
+  useEffect(() => {
     if (!user && rootSegment !== "(auth)") {
       router.replace("/login");
     } else if (user && rootSegment === "(auth)") {

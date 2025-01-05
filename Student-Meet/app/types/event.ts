@@ -1,14 +1,20 @@
 export type EventCategory = 'games' | 'sport' | 'ehb-events' | 'creativity';
 
 export interface EventData {
-  Category_id: EventCategory;
-  Date: string;
-  Description: string;
+  id?: string;
   Event_Title: string;
-  Event_picture?: string;
+  Description: string;
+  Date: string;
   Location: string;
   Max_Participants: string;
-  Phone_Number?: string;
+  Category_id: string;
   User_ID: string;
-  Created_At: string;
+  participants?: string[];
+  Phone_Number?: string;
+  status?: 'open' | 'full' | 'cancelled';
+} 
+
+// Add default export
+export default function Event() {
+  return null;
 } 

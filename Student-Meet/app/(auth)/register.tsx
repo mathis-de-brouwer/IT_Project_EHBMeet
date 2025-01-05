@@ -2,9 +2,12 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import Colors from '../../constants/Colors';
 import { useRouter } from 'expo-router';
-import { db } from '../../firebase_backup.js';
-import { collection, addDoc, doc, setDoc, getDoc, query, where, getDocs } from 'firebase/firestore';
+import { db, auth } from '../../firebase_backup'; // Import the Firebase instance
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { getAuth } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
 import CryptoJS from 'crypto-js';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -56,39 +59,102 @@ export default function RegisterScreen() {
         return;
       }
 
-      // Hash the password
-      const hashedPassword = CryptoJS.SHA256(userData.Password).toString();
-
-      // Generate unique User_ID
-      const timestamp = Date.now();
-      const randomNum = Math.floor(Math.random() * 1000);
-      const uniqueUserId = `${timestamp}${randomNum}`;
-
-      // Create document ID from name
-      const customDocId = `${userData.First_Name.toLowerCase()}.${userData.Second_name.toLowerCase()}`
-        .replace(/\s+/g, '')
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9.]/g, '');
-
-      // Check if document with this name combination already exists
-      const docRef = doc(db, "Users", customDocId);
-      const docSnap = await getDoc(docRef);
-
-      if (docSnap.exists()) {
-        Alert.alert('Error', 'A user with this name combination already exists');
+      // Password validation
+      if (userData.Password.length < 8) {
+        Alert.alert('Error', 'Password must be at least 8 characters long');
+        setIsRegistering(false);
         return;
       }
 
-      // Create user document with hashed password
-      const { User_ID, Password, ...userDataWithoutSensitive } = userData;
-      await setDoc(docRef, {
-        ...userDataWithoutSensitive,
-        Password: hashedPassword, // Store hashed password instead of plain text
+      if (userData.Password !== confirmPassword) {
+        Alert.alert('Error', 'Passwords do not match');
+        setIsRegistering(false);
+        return;
+      }
+
+      // Password strength validation
+      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+      if (!passwordRegex.test(userData.Password)) {
+        Alert.alert('Error', 
+          'Password must contain at least:\n' +
+          '- 8 characters\n' +
+          '- One uppercase letter\n' +
+          '- One lowercase letter\n' +
+          '- One number\n' +
+          '- One special character'
+        );
+        setIsRegistering(false);
+        return;
+      }
+
+      // Add email validation for specific domains
+      const validDomains = ['@ehb.be', '@student.ehb.be'];
+      const emailLower = userData.email.toLowerCase();
+      const isValidDomain = validDomains.some(domain => emailLower.endsWith(domain));
+
+      if (!isValidDomain) {
+        Alert.alert('Error', 'Please use your EHB email address');
+        setIsRegistering(false);
+        return;
+      }
+
+      // Check if email already exists
+      const usersRef = collection(db, "Users");
+      const q = query(usersRef, where("email", "==", userData.email.toLowerCase()));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        Alert.alert('Error', 'An account with this email already exists');
+        setIsRegistering(false);
+        return;
+      }
+
+      // Create Firebase Auth user first
+      let userCredential;
+      try {
+        userCredential = await createUserWithEmailAndPassword(
+          auth, 
+          userData.email.toLowerCase(), 
+          userData.Password
+        );
+      } catch (error: any) {
+        console.error("Detailed error:", error.code, error.message);
+        let errorMessage = 'Registration failed. Please try again.';
+        
+        switch (error.code) {
+          case 'auth/email-already-in-use':
+            errorMessage = 'This email is already registered.';
+            break;
+          case 'auth/invalid-email':
+            errorMessage = 'Invalid email address.';
+            break;
+          case 'auth/operation-not-allowed':
+            errorMessage = 'Email/password accounts are not enabled. Please contact support.';
+            break;
+          case 'auth/weak-password':
+            errorMessage = 'Please choose a stronger password.';
+            break;
+        }
+        
+        Alert.alert('Error', errorMessage);
+        setIsRegistering(false);
+        return;
+      }
+
+      // Now userCredential is accessible here
+      const uniqueUserId = userCredential.user.uid;
+
+      // Create user document in Firestore
+      const { Password, ...userDataWithoutPassword } = userData;
+      const hashedPassword = CryptoJS.SHA256(Password).toString();
+      
+      await setDoc(doc(db, "Users", uniqueUserId), {
+        ...userDataWithoutPassword,
         email: userData.email.toLowerCase(),
+        Password: hashedPassword,
         User_ID: uniqueUserId
       });
 
-      console.log("User registered with Doc ID: ", customDocId);
       Alert.alert('Success', 'Registration successful!', [
         { text: 'OK', onPress: () => router.push('/(auth)/login') }
       ]);

@@ -69,9 +69,10 @@ const Agenda = () => {
     });
   };
 
-  const handleDeleteEvent = async (eventId: string, e?: any) => {
+  const handleDeleteEvent = async (eventId: string | undefined, e?: any) => {
+    if (!eventId) return;
     if (e) {
-      e.stopPropagation();  // Prevent event card click
+      e.stopPropagation();
     }
     
     Alert.alert(
@@ -80,11 +81,11 @@ const Agenda = () => {
       [
         {
           text: 'Cancel',
-          style: 'cancel' as const
+          style: 'cancel'
         },
         {
           text: 'Delete',
-          style: 'destructive' as const,
+          style: 'destructive',
           onPress: async () => {
             try {
               setLoading(true);
@@ -103,7 +104,8 @@ const Agenda = () => {
     );
   };
 
-  const handleLeaveEvent = async (eventId: string) => {
+  const handleLeaveEvent = async (eventId: string | undefined) => {
+    if (!eventId) return;
     try {
       const eventRef = doc(db, 'Event', eventId);
       const eventDoc = await getDoc(eventRef);
@@ -127,6 +129,16 @@ const Agenda = () => {
     }
   };
 
+  const handleEditEvent = (event: EventData) => {
+    router.push({
+      pathname: '/events/activity_add',
+      params: { 
+        eventId: event.id,
+        isEditing: '1'
+      }
+    });
+  };
+
   const renderEventCard = (event: EventData, isCreated: boolean) => (
     <TouchableOpacity 
       key={event.id} 
@@ -143,12 +155,20 @@ const Agenda = () => {
             👥 {event.participants?.length || 0}/{event.Max_Participants}
           </Text>
           {isCreated ? (
-            <TouchableOpacity 
-              onPress={(e) => handleDeleteEvent(event.id, e)}
-              style={styles.deleteButton}
-            >
-              <Text style={styles.deleteButtonText}>Delete</Text>
-            </TouchableOpacity>
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity 
+                onPress={() => handleEditEvent(event)}
+                style={styles.editButton}
+              >
+                <Text style={styles.buttonText}>Edit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                onPress={(e) => handleDeleteEvent(event.id, e)}
+                style={styles.deleteButton}
+              >
+                <Text style={styles.deleteButtonText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
           ) : (
             <TouchableOpacity 
               onPress={() => handleLeaveEvent(event.id)}
@@ -307,5 +327,15 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 12,
     fontWeight: 'bold',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  editButton: {
+    backgroundColor: Colors.secondary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
   },
 });
