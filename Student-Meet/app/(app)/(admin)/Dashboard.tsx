@@ -3,15 +3,15 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-nati
 import { useRouter } from 'expo-router';
 import Colors from '../../../constants/Colors';
 import UserFooter from '../../../components/footer';
+import AdminHeader from '../../../components/AdminHeader';
 
 export default function AdminDashboard() {
   const router = useRouter();
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.content}>
-        <Text style={styles.title}>Admin Dashboard</Text>
-        
+      <AdminHeader title="Admin Dashboard" />
+      <ScrollView style={styles.scrollView}>
         <TouchableOpacity 
           style={styles.card}
           onPress={() => router.push('/(app)/(admin)/users')}
@@ -36,7 +36,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  content: {
+  scrollView: {
+    flex: 1,
     padding: 20,
   },
   title: {

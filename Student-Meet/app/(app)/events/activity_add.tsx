@@ -27,7 +27,7 @@ export default function ActivityAddScreen() {
   const { user } = useContext(AuthContext);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [event, setEvent] = useState<EventData | null>(null);
-  const { eventId, isEditing } = useLocalSearchParams();
+  const { eventId, isEditing, returnTo } = useLocalSearchParams();
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [date, setDate] = useState(new Date());
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -47,6 +47,8 @@ export default function ActivityAddScreen() {
   };
   
   const [eventData, setEventData] = useState<EventData>(initialEventData);
+
+  const isAdmin = user?.role === 'admin';
 
   useEffect(() => {
     const fetchEvent = async () => {
@@ -166,58 +168,36 @@ export default function ActivityAddScreen() {
     setIsSubmitting(true);
 
     try {
-      // Validate required fields first
-      const requiredFields = ['Event_Title', 'Date', 'Location', 'Max_Participants', 'Category_id'];
-      const missingFields = requiredFields.filter(field => !eventData[field as keyof EventData]);
-      
-      if (missingFields.length > 0) {
-        Alert.alert('Error', `Please fill in all required fields: ${missingFields.join(', ')}`);
-        setIsSubmitting(false);
-        return;
-      }
-
       if (isEditing === '1' && typeof eventId === 'string') {
         const eventRef = doc(db, 'Event', eventId);
         const eventDoc = await getDoc(eventRef);
         const currentEvent = eventDoc.data();
 
-        // Prepare update data while preserving existing fields
         const updateData = {
           ...eventData,
-          participants: currentEvent?.participants || [], // Preserve existing participants
+          participants: currentEvent?.participants || [],
           Last_Modified: new Date().toISOString(),
         };
 
-        // Update the event
         await updateDoc(eventRef, updateData);
-        console.log("Event updated successfully"); // Debug log
-
-        // Send notifications to participants
-        if (currentEvent?.participants?.length) {
-          const notificationPromises = currentEvent.participants.map((participantId: string) => {
-            if (participantId === user?.User_ID) return null;
-            
-            const notificationData = {
-              type: 'event_edited' as const,
-              userId: participantId,
-              userName: user?.First_Name || 'Event Creator',
-              eventId: eventId as string,
-              eventTitle: eventData.Event_Title,
-              createdAt: new Date().toISOString(),
-              read: false
-            };
-            return addDoc(collection(db, 'Notifications'), notificationData);
-          });
-
-          await Promise.all(notificationPromises.filter(Boolean));
-        }
 
         Alert.alert('Success', 'Event updated successfully!', [
-          { text: 'OK', onPress: () => router.back() }
+          { 
+            text: 'OK', 
+            onPress: () => {
+              if (isAdmin || returnTo === 'admin') {
+                router.replace('/(app)/(admin)/events');
+              } else if (returnTo === 'agenda') {
+                router.replace('/(app)/agenda');
+              } else {
+                router.replace('/(app)/home');
+              }
+            }
+          }
         ]);
       } else {
         // Create new event
-        const eventRef = await addDoc(collection(db, "Event"), {
+        await addDoc(collection(db, "Event"), {
           ...eventData,
           User_ID: user?.User_ID,
           Created_At: new Date().toISOString(),

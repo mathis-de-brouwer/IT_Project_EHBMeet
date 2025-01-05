@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, StyleProp, ViewStyle, GestureResponderEvent } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, StyleProp, ViewStyle, GestureResponderEvent, Platform } from 'react-native';
 import { EventData } from '../app/types/event';
 import Colors from '../constants/Colors';
 import { FontAwesome } from '@expo/vector-icons';
@@ -13,9 +13,10 @@ interface EventCardProps {
   event: EventData;
   style?: StyleProp<ViewStyle>;
   isAdmin?: boolean;
+  onEventUpdate?: (event: EventData) => void;
 }
 
-const EventCard = ({ event, style, isAdmin }: EventCardProps) => {
+const EventCard = ({ event, style, isAdmin, onEventUpdate }: EventCardProps) => {
   const router = useRouter();
   const { user } = useContext(AuthContext);
   const [isJoining, setIsJoining] = useState(false);
@@ -94,16 +95,14 @@ const EventCard = ({ event, style, isAdmin }: EventCardProps) => {
   };
 
   const handleDeleteEvent = async () => {
-    if (!event.id) return;
+    const eventId = event.id;
+    if (!eventId) return;
     
     Alert.alert(
       'Delete Event',
       'Are you sure you want to delete this event?',
       [
-        {
-          text: 'Cancel',
-          style: 'cancel'
-        },
+        { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete',
           style: 'destructive',
@@ -111,22 +110,25 @@ const EventCard = ({ event, style, isAdmin }: EventCardProps) => {
             try {
               // First, delete all notifications related to this event
               const notificationsRef = collection(db, 'Notifications');
-              const notificationsQuery = query(notificationsRef, where('eventId', '==', event.id));
+              const notificationsQuery = query(notificationsRef, where('eventId', '==', eventId));
               const notificationsSnapshot = await getDocs(notificationsQuery);
               
-              const deleteNotificationPromises = notificationsSnapshot.docs.map(doc => 
-                deleteDoc(doc.ref)
-              );
-              await Promise.all(deleteNotificationPromises);
+              await Promise.all(notificationsSnapshot.docs.map(doc => deleteDoc(doc.ref)));
 
-              // Then delete the event
-              if (event.id) {
-                await deleteDoc(doc(db, 'Event', event.id));
-                Alert.alert('Success', 'Event deleted successfully');
+              // Delete the event
+              const eventRef = doc(db, 'Event', eventId);
+              await deleteDoc(eventRef);
+              
+              // Notify parent component about deletion
+              if (onEventUpdate) {
+                onEventUpdate({ ...event, id: eventId });
               }
               
-              // Optionally refresh the events list
-              router.replace('/(app)/(admin)/events');
+              // Force refresh the page on web
+              if (Platform.OS === 'web') {
+                router.replace('/(app)/(admin)/events' as any);
+              }
+              
             } catch (error) {
               console.error('Error deleting event:', error);
               Alert.alert('Error', 'Failed to delete event. Please try again.');
@@ -135,6 +137,18 @@ const EventCard = ({ event, style, isAdmin }: EventCardProps) => {
         }
       ]
     );
+  };
+
+  const handleEdit = (e: GestureResponderEvent) => {
+    e.stopPropagation();
+    router.push({
+      pathname: '/events/activity_add',
+      params: { 
+        eventId: event.id,
+        isEditing: '1',
+        returnTo: isAdmin ? 'admin' : 'home'
+      }
+    });
   };
 
   return (

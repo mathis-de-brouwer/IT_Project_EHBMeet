@@ -4,6 +4,8 @@ import { collection, getDocs } from 'firebase/firestore';
 import { db } from '../../../firebase_backup';
 import Colors from '../../../constants/Colors';
 import { UserData } from '../../../app/types/user';
+import UserFooter from '../../../components/footer';
+import AdminHeader from '../../../components/AdminHeader';
 
 export default function UsersScreen() {
   const [users, setUsers] = useState<UserData[]>([]);
@@ -23,23 +25,27 @@ export default function UsersScreen() {
   }, []);
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Users</Text>
-      {users.map((user) => (
-        <View key={user.User_ID} style={styles.userCard}>
-          <Text style={styles.userName}>{user.First_Name} {user.Second_name}</Text>
-          <Text style={styles.userEmail}>{user.email}</Text>
-          <Text style={[styles.userRole, 
-            { color: user.role === 'admin' ? Colors.primary : Colors.secondary }
-          ]}>
-            Role: {user.role}
-          </Text>
-          <Text style={styles.userStatus}>
-            Status: {user.Blacklisted ? 'Blacklisted' : 'Active'}
-          </Text>
-        </View>
-      ))}
-    </ScrollView>
+    <View style={styles.container}>
+      <AdminHeader title="Manage Users" />
+      <ScrollView style={styles.scrollView}>
+        <Text style={styles.totalCount}>Total Users: {users.length}</Text>
+        {users.map((user) => (
+          <View key={user.User_ID} style={styles.userCard}>
+            <Text style={styles.userName}>{user.First_Name} {user.Second_name}</Text>
+            <Text style={styles.userEmail}>{user.email}</Text>
+            <Text style={[styles.userRole, 
+              { color: user.role === 'admin' ? Colors.primary : Colors.secondary }
+            ]}>
+              Role: {user.role}
+            </Text>
+            <Text style={styles.userStatus}>
+              Status: {user.Blacklisted ? 'Blacklisted' : 'Active'}
+            </Text>
+          </View>
+        ))}
+      </ScrollView>
+      <UserFooter />
+    </View>
   );
 }
 
@@ -47,13 +53,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  scrollView: {
+    flex: 1,
     padding: 20,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  totalCount: {
+    fontSize: 16,
+    color: Colors.secondary,
     marginBottom: 20,
-    color: Colors.text,
   },
   userCard: {
     backgroundColor: 'white',
