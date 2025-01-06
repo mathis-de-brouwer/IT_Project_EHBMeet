@@ -8,6 +8,8 @@ import { AuthContext } from '../../_layout';
 import UserFooter from '../../../components/footer';
 import { Picker } from '@react-native-picker/picker';
 import { EventCategory } from '../../types/event';
+import { Ionicons } from '@expo/vector-icons';
+
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 interface EventData {
@@ -182,99 +184,109 @@ export default function ActivityAddScreen() {
 
   const title = eventId ? 'Edit Event' : 'Create New Event';
 
+  
   return (
     <View style={styles.mainContainer}>
-      <ScrollView style={styles.container}>
-        <Text style={styles.title}>{title}</Text>
-        
-        <TextInput
-          style={styles.input}
-          placeholder="Event Title *"
-          placeholderTextColor={Colors.placeholder}
-          value={eventData.Event_Title}
-          onChangeText={(text) => setEventData({...eventData, Event_Title: text})}
-        />
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        {/* Header */}
+        <Text style={styles.title}>Add Event</Text>
 
-        <TouchableOpacity 
-          style={styles.input}
-          onPress={() => setShowDatePicker(true)}
-        >
-          <Text style={[styles.inputText, !eventData.Date && styles.placeholder]}>
-            {eventData.Date || 'Select Date *'}
-          </Text>
-        </TouchableOpacity>
-
-        {showDatePicker && (
-          <DateTimePicker
-            value={date}
-            mode="date"
-            onChange={onDateChange}
-            minimumDate={new Date()}
+        {/* Event Title */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Add Title</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter Event Title"
+            placeholderTextColor={Colors.placeholder}
+            value={eventData.Event_Title}
+            onChangeText={(text) => setEventData({ ...eventData, Event_Title: text })}
           />
-        )}
-
-        <TextInput
-          style={styles.input}
-          placeholder="Location *"
-          placeholderTextColor={Colors.placeholder}
-          value={eventData.Location}
-          onChangeText={(text) => setEventData({...eventData, Location: text})}
-        />
-
-        <TextInput
-          style={[styles.input, styles.textArea]}
-          placeholder="Description"
-          placeholderTextColor={Colors.placeholder}
-          value={eventData.Description}
-          onChangeText={(text) => setEventData({...eventData, Description: text})}
-          multiline
-          numberOfLines={4}
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Maximum Participants *"
-          placeholderTextColor={Colors.placeholder}
-          value={eventData.Max_Participants}
-          onChangeText={(text) => setEventData({...eventData, Max_Participants: text})}
-          keyboardType="numeric"
-        />
-
-        <View style={styles.pickerContainer}>
-          <Picker
-            selectedValue={eventData.Category_id as EventCategory}
-            onValueChange={(value: EventCategory) => 
-              setEventData({...eventData, Category_id: value})
-            }
-            style={styles.picker}
-          >
-            <Picker.Item label="Select Category *" value="" />
-            <Picker.Item label="Games" value="games" />
-            <Picker.Item label="Sport" value="sport" />
-            <Picker.Item label="EHB Events" value="ehb-events" />
-            <Picker.Item label="Creativity" value="creativity" />
-          </Picker>
         </View>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Phone Number"
-          placeholderTextColor={Colors.placeholder}
-          value={eventData.Phone_Number}
-          onChangeText={(text) => setEventData({...eventData, Phone_Number: text})}
-          keyboardType="phone-pad"
-        />
-
-        <TouchableOpacity 
-          style={[styles.button, isSubmitting && styles.buttonDisabled]} 
-          onPress={handleSubmit}
-          disabled={isSubmitting}
-        >
-          <Text style={styles.buttonText}>
-            {isSubmitting 
-              ? (isEditing === '1' ? 'Updating...' : 'Creating...') 
-              : (isEditing === '1' ? 'Update Event' : 'Create Event')}
+        {/* Date Picker */}
+        <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.datePicker}>
+          <Text style={[styles.inputText, !eventData.Date && styles.placeholder]}>
+            {eventData.Date || 'Select Date'}
           </Text>
+          <Ionicons name="calendar" size={24} color={Colors.text} />
+        </TouchableOpacity>
+        {showDatePicker && (
+          <DateTimePicker value={date} mode="date" onChange={onDateChange} minimumDate={new Date()} />
+        )}
+
+        {/* Location */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Location</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter Location"
+            placeholderTextColor={Colors.placeholder}
+            value={eventData.Location}
+            onChangeText={(text) => setEventData({ ...eventData, Location: text })}
+          />
+        </View>
+
+        {/* Description */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Description</Text>
+          <TextInput
+            style={[styles.input, styles.textArea]}
+            placeholder="Enter Description"
+            placeholderTextColor={Colors.placeholder}
+            value={eventData.Description}
+            onChangeText={(text) => setEventData({ ...eventData, Description: text })}
+            multiline
+          />
+        </View>
+
+        {/* Max Participants */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Max Participants</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter Number"
+            placeholderTextColor={Colors.placeholder}
+            value={eventData.Max_Participants}
+            onChangeText={(text) => setEventData({ ...eventData, Max_Participants: text })}
+            keyboardType="numeric"
+          />
+        </View>
+
+        {/* Categories */}
+        <View style={styles.categories}>
+          <Text style={styles.label}>Categories</Text>
+          <View style={styles.categoryContainer}>
+            {['games', 'sport', 'creativity'].map((category) => (
+              <TouchableOpacity
+                key={category}
+                style={[
+                  styles.category,
+                  eventData.Category_id === category && styles.selectedCategory,
+                ]}
+                onPress={() => setEventData({ ...eventData, Category_id: category })}
+              >
+                <Text style={styles.categoryText}>{category.charAt(0).toUpperCase() + category.slice(1)}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* Phone Number */}
+        <View style={styles.section}>
+          <Text style={styles.label}>Phone Number</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter Phone Number"
+            placeholderTextColor={Colors.placeholder}
+            value={eventData.Phone_Number}
+            onChangeText={(text) => setEventData({ ...eventData, Phone_Number: text })}
+            keyboardType="phone-pad"
+          />
+        </View>
+
+        {/* Submit Button */}
+        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+          <Text style={styles.submitButtonText}>{isEditing === '1' ? 'Update Event' : 'Create Event'}</Text>
         </TouchableOpacity>
       </ScrollView>
       <UserFooter />
@@ -284,12 +296,13 @@ export default function ActivityAddScreen() {
 
 const styles = StyleSheet.create({
   mainContainer: {
+    marginTop: 30,
     flex: 1,
     backgroundColor: Colors.background,
   },
-  container: {
-    flex: 1,
+  scrollContainer: {
     padding: 20,
+    alignItems: 'center',
   },
   title: {
     fontSize: 24,
@@ -297,14 +310,22 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     color: Colors.text,
   },
+  section: {
+    width: '100%',
+    marginBottom: 15,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 5,
+    color: Colors.text,
+  },
   input: {
     width: '100%',
-    height: 50,
-    borderColor: Colors.inputBorder,
     borderWidth: 1,
+    borderColor: Colors.inputBorder,
     borderRadius: 8,
-    marginBottom: 15,
-    paddingHorizontal: 15,
+    padding: 10,
     backgroundColor: Colors.inputBackground,
     fontSize: 16,
     color: Colors.text,
@@ -312,40 +333,60 @@ const styles = StyleSheet.create({
   textArea: {
     height: 100,
     textAlignVertical: 'top',
-    paddingTop: 10,
   },
-  button: {
-    backgroundColor: Colors.primary,
-    paddingVertical: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 10,
-    marginBottom: 20,
-  },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  pickerContainer: {
+  datePicker: {
+    width: '100%',
     borderWidth: 1,
     borderColor: Colors.inputBorder,
     borderRadius: 8,
-    marginBottom: 15,
+    padding: 10,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     backgroundColor: Colors.inputBackground,
-  },
-  picker: {
-    height: 50,
-    width: '100%',
+    marginBottom: 15,
   },
   inputText: {
-    fontSize: 16,
     color: Colors.text,
   },
   placeholder: {
     color: Colors.placeholder,
+  },
+  categories: {
+    width: '100%',
+    marginBottom: 15,
+  },
+  categoryContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  category: {
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
+    borderRadius: 8,
+    padding: 10,
+    backgroundColor: Colors.inputBackground,
+    flex: 1,
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
+  selectedCategory: {
+    backgroundColor: Colors.primary,
+  },
+  categoryText: {
+    color: Colors.text,
+  },
+  submitButton: {
+    backgroundColor: Colors.primary,
+    padding: 15,
+    borderRadius: 8,
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  submitButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
 }); 
