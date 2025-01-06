@@ -284,6 +284,13 @@ export default function ActivityAddScreen() {
     </TouchableOpacity>
   );
 
+  const handleParticipantPress = (participantId: string) => {
+    router.push({
+      pathname: '/profile/profile_info',
+      params: { userId: participantId }
+    });
+  };
+
   return (
     <View style={styles.mainContainer}>
       <ScrollView style={styles.container}>

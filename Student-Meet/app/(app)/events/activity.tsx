@@ -335,7 +335,7 @@ export default function EventDetailsScreen() {
                     key={participant.User_ID}
                     style={styles.participantCard}
                     onPress={() => router.push({
-                      pathname: '/profile/MyProfile' as any,
+                      pathname: '/profile/profile_info',
                       params: { userId: participant.User_ID }
                     })}
                   >
