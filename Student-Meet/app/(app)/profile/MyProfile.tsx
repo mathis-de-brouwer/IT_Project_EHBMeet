@@ -1,114 +1,106 @@
 import React, { useContext, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Image } from 'react-native';
 import { AuthContext } from '../../_layout';
 import UserFooter from '../../../components/footer';
-import Colors from '../../../constants/Colors';
 import { useRouter } from 'expo-router';
-import { FontAwesome, FontAwesome5 } from '@expo/vector-icons';
-import { UserData } from '../../types/user';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../../firebase_backup';
 
 export default function MyProfileScreen() {
   const { user, signOut } = useContext(AuthContext);
   const router = useRouter();
+  const [userData, setUserData] = useState<any>(null);
 
   const handleSignOut = async () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel'
+    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await signOut();
+            router.replace('/(auth)/login');
+          } catch (error) {
+            Alert.alert('Error', 'Failed to sign out.');
+          }
         },
-        {
-          text: 'Sign Out',
-          onPress: async () => {
-            try {
-              await signOut();
-              router.replace('/(auth)/login');
-            } catch (error) {
-              console.error('Error signing out:', error);
-              Alert.alert('Error', 'Failed to sign out. Please try again.');
-            }
-          },
-          style: 'destructive'
-        }
-      ]
-    );
+      },
+    ]);
   };
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (user?.email) {
+        const userRef = doc(db, 'Users', user.email);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          setUserData(userSnap.data());
+        }
+      }
+    };
+    fetchUserData();
+  }, [user]);
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.content}>
-        <View style={styles.profileHeader}>
-          <Image
-            source={
-              user?.Profile_Picture
-                ? { uri: user.Profile_Picture }
-                : require('../../../assets/images/default-avatar.png')
-            }
-            style={styles.profileImage}
-          />
-          
-          <Text style={styles.name}>
-            {user?.First_Name} {user?.Second_name}
-          </Text>
-          
-          <View style={styles.userInfoContainer}>
-            <FontAwesome name="envelope" size={16} color={Colors.secondary} />
-            <Text style={styles.userInfoText}>
-              {user?.email}
+      <ScrollView contentContainerStyle={styles.scrollViewContent}>
+        
+        {/* Header Section */}
+        <LinearGradient 
+  colors={['#44c9ea', 'white']} 
+  style={styles.header}
+>
+  <TouchableOpacity
+    style={styles.goBackButton}
+    onPress={() => (router.canGoBack() ? router.back() : router.replace('/home'))}
+  >
+    <Ionicons name="arrow-back" size={28} color="white" />
+  </TouchableOpacity>
+
+  <Text style={styles.headerTitle}>Profile</Text>
+
+  <TouchableOpacity
+    style={styles.editButton}
+    onPress={() => router.push('/profile/MyProfile_edit')}
+  >
+    <Ionicons name="create-outline" size={28} color="white" />
+  </TouchableOpacity>
+</LinearGradient>
+
+
+
+        {/* Body Section */}
+        <View style={styles.body}>
+          <View style={styles.profileImageContainer}>
+            <Image
+              source={
+                user?.Profile_Picture
+                  ? { uri: user.Profile_Picture }
+                  : require('../../../assets/images/default-avatar.png')
+              }
+              style={styles.profileImage}
+            />
+            <Text style={styles.profileName}>
+              {`${(user?.First_Name || 'User').charAt(0).toUpperCase()}${(user?.First_Name || '').slice(1).toLowerCase()} ${(user?.Second_name || '').charAt(0).toUpperCase()}${(user?.Second_name || '').slice(1).toLowerCase()}`}
             </Text>
+          </View>
+
+          {/* User Information Section */}
+          <View style={styles.infoSection}>
+            <ProfileRow icon="business-outline" label="Department" value={userData?.Department} />
+            <ProfileRow icon="sparkles-outline" label="Date of Birth" value={userData?.Date_Of_Birth} />
+            <ProfileRow icon="mail-outline" label="E-Mail" value={user?.email || ''} />
+            <ProfileRow icon="female-outline" label="Gender" value={userData?.Gender} />
+            <ProfileRow icon="map-outline" label="Region" value={userData?.Region} />
           </View>
         </View>
 
-        <View style={styles.infoSection}>
-          <View style={styles.infoItem}>
-            <FontAwesome name="user" size={20} color={Colors.primary} />
-            <Text style={styles.infoLabel}>Description</Text>
-            <Text style={styles.infoText}>
-              {user?.Description || 'No description added'}
-            </Text>
-          </View>
-
-          <View style={styles.infoItem}>
-            <FontAwesome name="gamepad" size={20} color={Colors.primary} />
-            <Text style={styles.infoLabel}>Steam Username</Text>
-            <Text style={styles.infoText}>
-              {user?.Steam_name || 'Not provided'}
-            </Text>
-          </View>
-
-          <View style={styles.infoItem}>
-            <FontAwesome5 name="discord" size={20} color={Colors.primary} />
-            <Text style={styles.infoLabel}>Discord Username</Text>
-            <Text style={styles.infoText}>
-              {user?.Discord_name || 'Not provided'}
-            </Text>
-          </View>
-        </View>
-
-        <TouchableOpacity 
-          style={styles.editButton}
-          onPress={() => router.push('/profile/MyProfile_edit')}
-        >
-          <Text style={styles.editButtonText}>Edit Profile</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.notificationsButton}
-          onPress={() => router.push('/profile/notifications')}
-        >
-          <Text style={styles.editButtonText}>Notifications</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.signOutButton}
-          onPress={handleSignOut}
-        >
-          <Text style={styles.signOutButtonText}>Sign Out</Text>
+        {/* Floating Sign-Out Button */}
+        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+          <Ionicons name="log-out-outline" size={30} color="white" />
         </TouchableOpacity>
       </ScrollView>
       <UserFooter />
@@ -116,99 +108,127 @@ export default function MyProfileScreen() {
   );
 }
 
+// Component for Rows
+interface ProfileRowProps {
+  icon: string;
+  label: string;
+  value: string;
+}
+
+const ProfileRow = ({ icon, label, value }: ProfileRowProps) => (
+  <View style={styles.infoRow}>
+    <Ionicons name={icon as any} size={24} color="#00bfa5" />
+    <View style={styles.infoTextContainer}>
+      <Text style={styles.infoLabel}>{label}</Text>
+      <Text style={styles.infoValue}>{value}</Text>
+    </View>
+  </View>
+);
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: '#fff',
   },
-  content: {
-    flex: 1,
-    padding: 20,
+  scrollViewContent: {
+    flexGrow: 1,
+    paddingBottom: 30,
   },
-  profileHeader: {
+  header: {
+    height: 160,
     alignItems: 'center',
-    marginBottom: 30,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    elevation: 5,
+    position: 'relative',
+  },
+  
+  headerTitle: {
+    fontSize: 35,
+    fontWeight: 'bold',
+    color: 'white',
+    position: 'absolute',  // Allow full control of positioning
+    top: '50%',  // Center vertically
+    left: 0,
+    right: 0,
+    textAlign: 'center',  // Center text horizontally
+   
+  },
+  profileImageContainer: {
+    alignItems: 'center',
+    marginTop: -50,  // Overlaps header
   },
   profileImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    marginBottom: 15,
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    borderWidth: 3,
+    borderColor: 'white',
+    marginTop: 20,
   },
-  name: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: Colors.text,
-    marginBottom: 10,
-    textAlign: 'center',
-    paddingHorizontal: 10,
-  },
-  infoSection: {
-    backgroundColor: 'white',
-    borderRadius: 15,
-    padding: 20,
-    marginBottom: 20,
-    elevation: 2,
-  },
-  infoItem: {
-    marginBottom: 20,
-  },
-  infoLabel: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.text,
-    marginTop: 5,
-    marginBottom: 5,
-  },
-  infoText: {
-    fontSize: 16,
-    color: Colors.text,
+  profileName: {
+    fontSize: 25,
+    fontWeight: 'light',
+    color: '#333',
+    marginTop: 10,
   },
   editButton: {
-    backgroundColor: Colors.primary,
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 10,
+    position: 'absolute',
+    top: 60,
+    right: 30,
   },
-  notificationsButton: {
-    backgroundColor: Colors.secondary,
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 20,
+  goBackButton: {
+    position: 'absolute',
+    top: 60,
+    left: 30,
   },
-  editButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
+  body: {
+    marginHorizontal: 20,
+    backgroundColor: 'white',
+    borderRadius: 15,
+    padding: 25,
+    marginTop: 20,
+    elevation: 3,
   },
-  signOutButton: {
-    backgroundColor: Colors.error,
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 20,
+  infoSection: {
+    marginHorizontal: 20,
+    backgroundColor: 'white',
+    borderRadius: 15,
+    padding: 25,
+    marginTop: 20,
+    elevation: 3,
   },
-  signOutButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  userInfoContainer: {
+  infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
-    paddingHorizontal: 10,
+    marginBottom: 20,
   },
-  userInfoText: {
-    fontSize: 16,
-    color: Colors.secondary,
-    marginLeft: 8,
+  infoTextContainer: {
+    marginLeft: 20,
   },
-  debugText: {
-    fontSize: 12,
-    color: 'red',
-    marginTop: 5,
+  infoLabel: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+  },
+  infoValue: {
+    fontSize: 18,
+    color: '#666',
+
+  },
+  signOutButton: {
+    position: 'absolute',
+    bottom: 20,
+    right: 30,
+    backgroundColor: 'red',
+    padding: 15,
+    borderRadius: 30,
+    width: 60,
+    height: 60,
+    justifyContent: 'center',
   },
 });
