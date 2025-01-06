@@ -20,72 +20,85 @@ export default function MyProfileEditScreen() {
     Gender: '',
     Region: '',
   });
+  const [userID, setUserID] = useState<string>(''); // State to store userID
 
+  // Fetch the user's data and store userID
   useEffect(() => {
     const fetchUserData = async () => {
       if (user?.email) {
-        const userRef = doc(db, 'Users', user.email);
+        const userRef = doc(db, 'Users', user?.User_ID); // Fetch using User_ID as the document ID
         const userSnap = await getDoc(userRef);
         if (userSnap.exists()) {
-          setUserData(userSnap.data());
+          const userData = userSnap.data();
+          console.log('Fetched user document:', userData);
+
+          if (userData?.User_ID) {
+            setUserID(userData.User_ID); // Assign the User_ID from Firestore to the state
+            setUserData(userData);
+          } else {
+            console.error('User_ID is missing in the document.');
+          }
+        } else {
+          console.error('User document not found with User_ID.');
         }
+      } else {
+        console.error('User email is undefined.');
       }
     };
+
     fetchUserData();
   }, [user]);
 
+  // Handle save button press and update Firestore document using User_ID
   const handleSave = async () => {
-    if (user?.email) {
-      const userRef = doc(db, 'Users', user.email);
-      try {
-        await updateDoc(userRef, {
-          ...userData,
-        });
-        Alert.alert('Success', 'Profile updated successfully.');
-        router.back();
-      } catch (error) {
-        Alert.alert('Error', 'Failed to update profile. Please try again.');
-      }
+    console.log('handleSave called');
+    if (!userID) {
+      console.error('User ID is undefined.');
+      return;
+    }
+
+    // Update Firestore document using the User_ID as the document reference
+    const userRef = doc(db, 'Users', userID); // Use userID instead of email
+    try {
+      await updateDoc(userRef, {
+        ...userData,
+      });
+      console.log('User data updated successfully');
+      Alert.alert('Success', 'Profile updated successfully.');
+      router.back(); // Go back to previous page after successful update
+    } catch (error) {
+      console.error('Error updating Firestore document:', error);
+      Alert.alert('Error', 'Failed to update profile. Please try again.');
     }
   };
 
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollViewContent}>
-        {/* Header Section */}
-        <LinearGradient 
-          colors={['#44c9ea', 'white']} 
-          style={styles.header}
-        >
+        <LinearGradient colors={['#44c9ea', 'white']} style={styles.header}>
           <TouchableOpacity
             style={styles.goBackButton}
             onPress={() => router.back()}
           >
             <Ionicons name="arrow-back" size={28} color="white" />
           </TouchableOpacity>
-
           <Text style={styles.headerTitle}>Edit Profile</Text>
-
           <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
             <Ionicons name="checkmark-outline" size={28} color="white" />
           </TouchableOpacity>
         </LinearGradient>
 
-        {/* Body Section */}
         <View style={styles.body}>
           <View style={styles.profileImageContainer}>
             <Image
-              source={
-                user?.Profile_Picture
-                  ? { uri: user.Profile_Picture }
-                  : require('../../../assets/images/default-avatar.png')
-              }
+              source={{
+                uri: `https://ui-avatars.com/api/?name=${userData.First_Name}+${userData.Second_name}&background=random`,
+              }}
               style={styles.profileImage}
             />
             <Text style={styles.profileName}>Edit Profile Picture</Text>
           </View>
 
-          {/* Editable Fields */}
           <View style={styles.infoSection}>
             <EditableField
               label="First Name"
@@ -107,11 +120,7 @@ export default function MyProfileEditScreen() {
               value={userData.Date_Of_Birth}
               onChangeText={(text: string) => setUserData({ ...userData, Date_Of_Birth: text })}
             />
-            <EditableField
-              label="Email"
-              value={user?.email}
-              editable={false}
-            />
+            <EditableField label="Email" value={user?.email} editable={false} />
             <EditableField
               label="Gender"
               value={userData.Gender}
