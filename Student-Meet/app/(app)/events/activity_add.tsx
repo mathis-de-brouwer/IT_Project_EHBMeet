@@ -216,6 +216,26 @@ export default function ActivityAddScreen() {
 
         await updateDoc(eventRef, updateData);
 
+        // Add a small delay before sending notifications
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Add notification logic here
+        const participants = currentEvent?.participants || [];
+        const creatorId = currentEvent?.User_ID;
+        const usersToNotify = [...new Set([...participants, creatorId])];
+        
+        await Promise.all(usersToNotify.map(userId => 
+          addDoc(collection(db, 'Notifications'), {
+            type: 'event_edited',
+            userId: userId,
+            userName: user?.email || 'Admin',
+            eventId: eventId,
+            eventTitle: updateData.Event_Title,
+            createdAt: new Date().toISOString(),
+            read: false
+          })
+        ));
+
         Alert.alert('Success', 'Event updated successfully!', [
           { 
             text: 'OK', 
@@ -544,4 +564,4 @@ const styles = StyleSheet.create({
     borderColor: Colors.primary,
     borderWidth: 2,
   },
-}); 
+});
