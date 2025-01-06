@@ -50,6 +50,41 @@ export default function ActivityAddScreen() {
 
   const isAdmin = user?.role === 'admin';
 
+  // Add this function to check if user can use EHB category
+  const canUseEHBCategory = () => {
+    if (!user) return false;
+    return ['admin', 'ehb', 'enigma'].includes(user.role);
+  };
+
+  // Add this to filter available categories based on user role
+  const getAvailableCategories = () => {
+    const allCategories = [
+      { id: 'games', label: 'Games' },
+      { id: 'sport', label: 'Sport' },
+      { id: 'ehb-events', label: 'EHB Events' },
+      { id: 'creativity', label: 'Creative' }
+    ];
+
+    return allCategories.filter(category => 
+      category.id !== 'ehb-events' || canUseEHBCategory()
+    );
+  };
+
+  // Add validation for category
+  useEffect(() => {
+    // If editing an event with EHB category but user doesn't have permission
+    if (eventData.Category_id === 'ehb-events' && !canUseEHBCategory()) {
+      setEventData(prev => ({
+        ...prev,
+        Category_id: '' // Reset to empty or default category
+      }));
+      Alert.alert(
+        'Category Restricted',
+        'Only EHB staff, Enigma members, and administrators can create EHB events.'
+      );
+    }
+  }, [eventData.Category_id, user]);
+
   useEffect(() => {
     const fetchEvent = async () => {
       if (!eventId) return;
@@ -244,26 +279,6 @@ export default function ActivityAddScreen() {
 
   const title = eventId ? 'Edit Event' : 'Create New Event';
 
-  // Replace the Picker with custom category buttons
-  const CategoryButton = ({ 
-    category, 
-    selected, 
-    onPress 
-  }: { 
-    category: string, 
-    selected: boolean, 
-    onPress: () => void 
-  }) => (
-    <TouchableOpacity 
-      style={[styles.categoryButton, selected && styles.categoryButtonSelected]} 
-      onPress={onPress}
-    >
-      <Text style={[styles.categoryButtonText, selected && styles.categoryButtonTextSelected]}>
-        {category}
-      </Text>
-    </TouchableOpacity>
-  );
-
   return (
     <View style={styles.mainContainer}>
       <ScrollView style={styles.container}>
@@ -364,26 +379,24 @@ export default function ActivityAddScreen() {
 
           <Text style={styles.label}>Category *</Text>
           <View style={styles.categoryContainer}>
-            <CategoryButton
-              category="Games"
-              selected={eventData.Category_id === 'games'}
-              onPress={() => handleInputChange('Category_id', 'games')}
-            />
-            <CategoryButton
-              category="Sport"
-              selected={eventData.Category_id === 'sport'}
-              onPress={() => handleInputChange('Category_id', 'sport')}
-            />
-            <CategoryButton
-              category="EHB Events"
-              selected={eventData.Category_id === 'ehb-events'}
-              onPress={() => handleInputChange('Category_id', 'ehb-events')}
-            />
-            <CategoryButton
-              category="Creative"
-              selected={eventData.Category_id === 'creativity'}
-              onPress={() => handleInputChange('Category_id', 'creativity')}
-            />
+            {getAvailableCategories().map(({ id, label }) => (
+              <TouchableOpacity
+                key={id}
+                style={[
+                  styles.categoryButton,
+                  eventData.Category_id === id && styles.categoryButtonSelected,
+                  id === 'ehb-events' && styles.ehbCategory
+                ]}
+                onPress={() => handleInputChange('Category_id', id)}
+              >
+                <Text style={[
+                  styles.categoryButtonText,
+                  eventData.Category_id === id && styles.categoryButtonTextSelected
+                ]}>
+                  {label}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
           {touched.Category_id && errors.Category_id && (
             <Text style={styles.errorText}>{errors.Category_id}</Text>
@@ -526,5 +539,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
     marginLeft: 4,
+  },
+  ehbCategory: {
+    borderColor: Colors.primary,
+    borderWidth: 2,
   },
 }); 
