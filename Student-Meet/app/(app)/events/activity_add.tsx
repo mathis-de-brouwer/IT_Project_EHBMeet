@@ -32,6 +32,8 @@ export default function ActivityAddScreen() {
   const [date, setDate] = useState(new Date());
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [touched, setTouched] = useState<{ [key: string]: boolean }>({});
+  const [showReasonModal, setShowReasonModal] = useState(false);
+  const [adminReason, setAdminReason] = useState('');
   
   const initialEventData: EventData = {
     Category_id: '',
@@ -204,52 +206,38 @@ export default function ActivityAddScreen() {
 
     try {
       if (isEditing === '1' && typeof eventId === 'string') {
-        const eventRef = doc(db, 'Event', eventId);
-        const eventDoc = await getDoc(eventRef);
-        const currentEvent = eventDoc.data();
-
-        const updateData = {
-          ...eventData,
-          participants: currentEvent?.participants || [],
-          Last_Modified: new Date().toISOString(),
-        };
-
-        await updateDoc(eventRef, updateData);
-
-        // Add a small delay before sending notifications
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // Add notification logic here
-        const participants = currentEvent?.participants || [];
-        const creatorId = currentEvent?.User_ID;
-        const usersToNotify = [...new Set([...participants, creatorId])];
-        
-        await Promise.all(usersToNotify.map(userId => 
-          addDoc(collection(db, 'Notifications'), {
-            type: 'event_edited',
-            userId: userId,
-            userName: user?.email || 'Admin',
-            eventId: eventId,
-            eventTitle: updateData.Event_Title,
-            createdAt: new Date().toISOString(),
-            read: false
-          })
-        ));
-
-        Alert.alert('Success', 'Event updated successfully!', [
-          { 
-            text: 'OK', 
-            onPress: () => {
-              if (isAdmin || returnTo === 'admin') {
-                router.replace('/(app)/(admin)/events');
-              } else if (returnTo === 'agenda') {
-                router.replace('/(app)/agenda');
-              } else {
-                router.replace('/(app)/home');
-              }
-            }
+        if (isAdmin) {
+          if (Platform.OS === 'ios') {
+            Alert.prompt(
+              'Admin Edit Reason',
+              'Please provide a reason for this edit:',
+              [
+                {
+                  text: 'Cancel',
+                  onPress: () => setIsSubmitting(false),
+                  style: 'cancel'
+                },
+                {
+                  text: 'Submit',
+                  onPress: async (reason?: string) => {
+                    if (!reason) {
+                      Alert.alert('Error', 'A reason is required for admin edits');
+                      setIsSubmitting(false);
+                      return;
+                    }
+                    await updateEventWithNotifications(reason);
+                  }
+                }
+              ],
+              'plain-text'
+            );
+          } else {
+            // Show custom modal for web and Android
+            setShowReasonModal(true);
           }
-        ]);
+        } else {
+          await updateEventWithNotifications();
+        }
       } else {
         // Create new event
         await addDoc(collection(db, "Event"), {
@@ -271,9 +259,55 @@ export default function ActivityAddScreen() {
     } catch (error) {
       console.error('Error:', error);
       Alert.alert('Error', 'Failed to save event');
-    } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const updateEventWithNotifications = async (adminReason?: string) => {
+    const eventRef = doc(db, 'Event', eventId as string);
+    const eventDoc = await getDoc(eventRef);
+    const currentEvent = eventDoc.data();
+
+    const updateData = {
+      ...eventData,
+      participants: currentEvent?.participants || [],
+      Last_Modified: new Date().toISOString(),
+    };
+
+    await updateDoc(eventRef, updateData);
+
+    // Add notification logic here
+    const participants = currentEvent?.participants || [];
+    const creatorId = currentEvent?.User_ID;
+    const usersToNotify = [...new Set([...participants, creatorId])];
+    
+    await Promise.all(usersToNotify.map(userId => 
+      addDoc(collection(db, 'Notifications'), {
+        type: isAdmin ? 'admin_event_edit' : 'event_edited',
+        userId: userId,
+        userName: user?.email || 'Admin',
+        eventId: eventId,
+        eventTitle: updateData.Event_Title,
+        createdAt: new Date().toISOString(),
+        read: false,
+        ...(adminReason && { adminReason })
+      })
+    ));
+
+    Alert.alert('Success', 'Event updated successfully!', [
+      { 
+        text: 'OK', 
+        onPress: () => {
+          if (isAdmin || returnTo === 'admin') {
+            router.replace('/(app)/(admin)/events');
+          } else if (returnTo === 'agenda') {
+            router.replace('/(app)/agenda');
+          } else {
+            router.replace('/(app)/home');
+          }
+        }
+      }
+    ]);
   };
 
   const handleInputChange = (name: keyof EventData, value: string) => {
@@ -457,6 +491,44 @@ export default function ActivityAddScreen() {
         </View>
       </ScrollView>
       <UserFooter />
+      {showReasonModal && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Admin Edit Reason</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Enter reason for edit"
+              value={adminReason}
+              onChangeText={setAdminReason}
+              multiline
+            />
+            <View style={styles.modalButtons}>
+              <TouchableOpacity 
+                style={styles.modalButton}
+                onPress={() => {
+                  setShowReasonModal(false);
+                  setIsSubmitting(false);
+                }}
+              >
+                <Text style={styles.modalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalSubmitButton]}
+                onPress={async () => {
+                  if (!adminReason.trim()) {
+                    Alert.alert('Error', 'A reason is required for admin edits');
+                    return;
+                  }
+                  setShowReasonModal(false);
+                  await updateEventWithNotifications(adminReason);
+                }}
+              >
+                <Text style={styles.modalButtonText}>Submit</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -570,5 +642,87 @@ const styles = StyleSheet.create({
   ehbCategory: {
     borderColor: Colors.primary,
     borderWidth: 2,
+  },
+  modalOverlay: Platform.select({
+    web: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 9999,
+      width: '100%',
+      height: '100%',
+    },
+    default: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 9999,
+    }
+  }),
+  modalContent: Platform.select({
+    web: {
+      backgroundColor: 'white',
+      padding: 20,
+      borderRadius: 10,
+      width: '80%',
+      maxWidth: 400,
+      elevation: 5,
+    },
+    default: {
+      backgroundColor: 'white',
+      padding: 20,
+      borderRadius: 10,
+      width: '80%',
+      maxWidth: 400,
+    }
+  }),
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: Colors.text,
+  },
+  modalInput: {
+    width: '100%',
+    minHeight: 100,
+    borderColor: Colors.inputBorder,
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    backgroundColor: Colors.inputBackground,
+    fontSize: 16,
+    color: Colors.text,
+    marginBottom: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  modalButton: {
+    backgroundColor: Colors.primary,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 10,
+  },
+  modalButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  modalSubmitButton: {
+    backgroundColor: Colors.primary,
   },
 });

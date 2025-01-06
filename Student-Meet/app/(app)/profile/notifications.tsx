@@ -43,6 +43,8 @@ export default function NotificationsScreen() {
   }, [user?.User_ID]);
 
   const handleNotificationPress = async (notification: Notification) => {
+    if (!notification.eventId) return;
+
     try {
       // First update the read status
       await updateDoc(doc(db, 'Notifications', notification.id), {
@@ -88,6 +90,10 @@ export default function NotificationsScreen() {
         return `Event "${notification.eventTitle}" has been cancelled`;
       case 'event_edited':
         return `Event "${notification.eventTitle}" has been updated`;
+      case 'admin_event_edit':
+        return `An administrator (${notification.userName}) edited your event "${notification.eventTitle}"\n\nReason: ${notification.adminReason}`;
+      case 'admin_profile_edit':
+        return `An administrator (${notification.userName}) made changes to your profile\n\nReason: ${notification.adminReason}`;
       default:
         return 'New notification';
     }
@@ -117,12 +123,20 @@ export default function NotificationsScreen() {
               key={notification.id}
               style={[
                 styles.notificationCard,
-                !notification.read && styles.unreadCard
+                !notification.read && styles.unreadCard,
+                (notification.type === 'admin_event_edit' || 
+                 notification.type === 'admin_profile_edit') && 
+                 styles.adminNotificationCard
               ]}
               onPress={() => handleNotificationPress(notification)}
             >
               <View style={styles.notificationContent}>
-                <Text style={styles.notificationText}>
+                <Text style={[
+                  styles.notificationText,
+                  (notification.type === 'admin_event_edit' || 
+                   notification.type === 'admin_profile_edit') && 
+                   styles.adminNotificationText
+                ]}>
                   {getNotificationMessage(notification)}
                 </Text>
                 <Text style={styles.timestamp}>
@@ -178,9 +192,14 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   unreadCard: {
-    backgroundColor: '#e3f2fd', 
+    backgroundColor: '#e3f2fd',
     borderLeftWidth: 4,
     borderLeftColor: Colors.primary,
+  },
+  adminNotificationCard: {
+    backgroundColor: '#fff4f4',
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.error,
   },
   notificationContent: {
     flex: 1,
@@ -189,6 +208,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.text,
     marginBottom: 8,
+  },
+  adminNotificationText: {
+    fontSize: 16,
+    color: Colors.text,
   },
   timestamp: {
     fontSize: 12,
