@@ -4,24 +4,29 @@ import { useLocalSearchParams } from 'expo-router';
 import { getUserById } from '../../../utils/userUtils';
 import Colors from '../../../constants/Colors';
 import { UserData } from '../../types/user';
+import { useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
 
 export default function ProfileInfoScreen() {
   const { userId } = useLocalSearchParams();
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      if (!userId) return;
-      const userData = await getUserById(userId as string);
-      if (userData) {
-        setUser(userData as UserData);
-      }
-      setLoading(false);
-    };
+  useFocusEffect(
+    useCallback(() => {
+      const fetchUser = async () => {
+        if (!userId) return;
+        setLoading(true);
+        const userData = await getUserById(userId as string);
+        if (userData) {
+          setUser(userData as UserData);
+        }
+        setLoading(false);
+      };
 
-    fetchUser();
-  }, [userId]);
+      fetchUser();
+    }, [userId])
+  );
 
   if (loading) {
     return <ActivityIndicator size="large" color={Colors.primary} />;

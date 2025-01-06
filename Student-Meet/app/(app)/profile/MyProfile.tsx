@@ -1,9 +1,9 @@
-import React, { useContext, useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { AuthContext } from '../../_layout';
 import UserFooter from '../../../components/footer';
 import Colors from '../../../constants/Colors';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { FontAwesome, FontAwesome5 } from '@expo/vector-icons';
 import { UserData } from '../../types/user';
 import { doc, getDoc } from 'firebase/firestore';
@@ -12,6 +12,22 @@ import { db } from '../../../firebase';
 export default function MyProfileScreen() {
   const { user, signOut } = useContext(AuthContext);
   const router = useRouter();
+  const [userData, setUserData] = useState(user);
+
+  useFocusEffect(
+    useCallback(() => {
+      const refreshUserData = async () => {
+        if (user?.User_ID) {
+          const userRef = doc(db, 'Users', user.User_ID);
+          const userSnap = await getDoc(userRef);
+          if (userSnap.exists()) {
+            setUserData(userSnap.data());
+          }
+        }
+      };
+      refreshUserData();
+    }, [user?.User_ID])
+  );
 
   const handleSignOut = async () => {
     Alert.alert(
@@ -45,21 +61,21 @@ export default function MyProfileScreen() {
         <View style={styles.profileHeader}>
           <Image
             source={
-              user?.Profile_Picture
-                ? { uri: user.Profile_Picture }
+              userData?.Profile_Picture
+                ? { uri: userData.Profile_Picture }
                 : require('../../../assets/images/default-avatar.png')
             }
             style={styles.profileImage}
           />
           
           <Text style={styles.name}>
-            {user?.First_Name} {user?.Second_name}
+            {userData?.First_Name} {userData?.Second_name}
           </Text>
           
           <View style={styles.userInfoContainer}>
             <FontAwesome name="envelope" size={16} color={Colors.secondary} />
             <Text style={styles.userInfoText}>
-              {user?.email}
+              {userData?.email}
             </Text>
           </View>
         </View>
@@ -69,7 +85,7 @@ export default function MyProfileScreen() {
             <FontAwesome name="user" size={20} color={Colors.primary} />
             <Text style={styles.infoLabel}>Description</Text>
             <Text style={styles.infoText}>
-              {user?.Description || 'No description added'}
+              {userData?.Description || 'No description added'}
             </Text>
           </View>
 
@@ -77,7 +93,7 @@ export default function MyProfileScreen() {
             <FontAwesome name="gamepad" size={20} color={Colors.primary} />
             <Text style={styles.infoLabel}>Steam Username</Text>
             <Text style={styles.infoText}>
-              {user?.Steam_name || 'Not provided'}
+              {userData?.Steam_name || 'Not provided'}
             </Text>
           </View>
 
@@ -85,12 +101,12 @@ export default function MyProfileScreen() {
             <FontAwesome5 name="discord" size={20} color={Colors.primary} />
             <Text style={styles.infoLabel}>Discord Username</Text>
             <Text style={styles.infoText}>
-              {user?.Discord_name || 'Not provided'}
+              {userData?.Discord_name || 'Not provided'}
             </Text>
           </View>
         </View>
 
-        {user?.role === 'admin' && (
+        {userData?.role === 'admin' && (
           <TouchableOpacity 
             style={styles.adminButton}
             onPress={() => router.push('/(app)/(admin)/Dashboard')}
