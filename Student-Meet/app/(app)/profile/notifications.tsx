@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { collection, query, where, getDocs, updateDoc, doc, onSnapshot, getDoc } from 'firebase/firestore';
-import { db } from '../../../firebase_backup';
+import { db } from '../../../firebase';
 import { Notification } from '../../types/notification';
 import { AuthContext } from '../../_layout';
 import UserFooter from '../../../components/footer';

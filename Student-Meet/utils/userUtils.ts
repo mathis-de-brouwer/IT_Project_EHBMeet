@@ -1,5 +1,5 @@
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase_backup';
+import { db } from '../firebase';
 
 export const getUserById = async (userId: string) => {
   try {

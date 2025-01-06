@@ -7,7 +7,7 @@ import { useRouter } from 'expo-router';
 import { FontAwesome, FontAwesome5 } from '@expo/vector-icons';
 import { UserData } from '../../types/user';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../../../firebase_backup';
+import { db } from '../../../firebase';
 
 export default function MyProfileScreen() {
   const { user, signOut } = useContext(AuthContext);

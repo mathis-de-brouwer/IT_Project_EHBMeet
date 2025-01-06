@@ -1,5 +1,5 @@
 import { collection, addDoc } from 'firebase/firestore';
-import { db } from '../firebase_backup';
+import { db } from '../firebase';
 import { NotificationType } from '../app/types/notification';
 
 export const sendAdminNotification = async ({

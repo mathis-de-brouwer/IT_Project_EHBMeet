@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { doc, updateDoc, arrayUnion, getDoc, deleteDoc, addDoc, collection } from 'firebase/firestore';
-import { db } from '../../../firebase_backup';
+import { db } from '../../../firebase';
 import { EventData } from '../../types/event';
 import { AuthContext } from '../../_layout';
 import UserFooter from '../../../components/footer';

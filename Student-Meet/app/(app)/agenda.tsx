@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, ActivityIndicator, TouchableOpacity } from 'react-native';
-import { db } from '../../firebase_backup'; 
+import { db } from '../../firebase'; 
 import { collection, query, where, getDocs, doc, deleteDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { AuthContext } from '../_layout';
 import Header from '../../components/header';
