@@ -91,9 +91,21 @@ export default function NotificationsScreen() {
       case 'event_edited':
         return `Event "${notification.eventTitle}" has been updated`;
       case 'admin_event_edit':
-        return `An administrator (${notification.userName}) edited your event "${notification.eventTitle}"\n\nReason: ${notification.adminReason}`;
       case 'admin_profile_edit':
-        return `An administrator (${notification.userName}) made changes to your profile\n\nReason: ${notification.adminReason}`;
+        return (
+          <View>
+            <Text style={styles.adminActionText}>
+              An administrator ({notification.userName}) {
+                notification.type === 'admin_event_edit' 
+                  ? `edited your event "${notification.eventTitle}"`
+                  : 'made changes to your profile'
+              }
+            </Text>
+            <Text style={styles.adminReasonText}>
+              Reason: {notification.adminReason}
+            </Text>
+          </View>
+        );
       default:
         return 'New notification';
     }
@@ -208,6 +220,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.text,
     marginBottom: 8,
+    flexShrink: 1,
   },
   adminNotificationText: {
     fontSize: 16,
@@ -222,5 +235,16 @@ const styles = StyleSheet.create({
     color: Colors.placeholder,
     marginTop: 40,
     fontSize: 16,
+  },
+  adminActionText: {
+    fontSize: 16,
+    color: Colors.text,
+    marginBottom: 8,
+  },
+  adminReasonText: {
+    fontSize: 15,
+    color: Colors.error,
+    fontStyle: 'italic',
+    marginTop: 4,
   },
 });
