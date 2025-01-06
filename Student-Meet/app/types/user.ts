@@ -1,13 +1,17 @@
 export type UserRole = 'student' | 'admin' | 'ehb' | 'enigma';
 
 export interface UserData {
+  User_ID: string;
+  email: string;
   First_Name: string;
   Second_name: string;
-  email: string;
-  User_ID: string;
   Password: string;
   Blacklisted: boolean;
   Description?: string;
+  Department?: string;
+  Date_Of_Birth?: string;
+  Gender?: string;
+  Region?: string;
   Profile_Picture?: string;
   Steam_name?: string;
   Discord_name?: string;

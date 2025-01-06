@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useContext } from 'react';
+import * as React from 'react';
+import { useEffect, useState, useContext } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { db } from '../../firebase'; 
 import { collection, query, where, getDocs, doc, deleteDoc, getDoc, updateDoc } from 'firebase/firestore';

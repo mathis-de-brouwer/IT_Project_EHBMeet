@@ -8,8 +8,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { FontAwesome, FontAwesome5 } from '@expo/vector-icons';
 import { UserData } from '../../types/user';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../../firebase';
+import Header from '../../../components/header';
 
 export default function MyProfileScreen() {
   const { user, signOut } = useContext(AuthContext);
@@ -23,7 +24,7 @@ export default function MyProfileScreen() {
           const userRef = doc(db, 'Users', user.User_ID);
           const userSnap = await getDoc(userRef);
           if (userSnap.exists()) {
-            setUserData(userSnap.data());
+            setUserData(userSnap.data() as UserData);
           }
         }
       };
@@ -51,124 +52,101 @@ export default function MyProfileScreen() {
 
   useEffect(() => {
     const fetchUserData = async () => {
-      if (user?.email) {
-        const userRef = doc(db, 'Users', user.email);
-        const userSnap = await getDoc(userRef);
-        if (userSnap.exists()) {
-          setUserData(userSnap.data());
+      if (user?.User_ID) {
+        const userRef = doc(db, 'Users', user.User_ID);
+        try {
+          const userSnap = await getDoc(userRef);
+          if (userSnap.exists()) {
+            const data = userSnap.data() as UserData;
+            setUserData(data);
+            
+            if (JSON.stringify(data) !== JSON.stringify(user)) {
+              await updateDoc(userRef, data as any);
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching user data:', error);
+          Alert.alert('Error', 'Failed to load profile data');
         }
       }
     };
+    
     fetchUserData();
   }, [user]);
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.content}>
+      <Header title="Profile" />
+      
+      <ScrollView style={[styles.scrollViewContent, { marginTop: 150 }]}>
         <View style={styles.profileHeader}>
-        <TouchableOpacity
-    style={styles.goBackButton}
-    onPress={() => (router.canGoBack() ? router.back() : router.replace('/home'))}
-  >
-    <Ionicons name="arrow-back" size={28} color="white" />
-  </TouchableOpacity>
-
-  <Text style={styles.headerTitle}>Profile</Text>
-
-  <TouchableOpacity
-    style={styles.editButton}
-    onPress={() => router.push('/profile/MyProfile_edit')}
-  >
-    <Ionicons name="create-outline" size={28} color="white" />
-  </TouchableOpacity>
-</LinearGradient>
-
-
-
-        {/* Body Section */}
-        <View style={styles.body}>
           <View style={styles.profileImageContainer}>
-
-
-
-
-
-
-          <Image
-            source={
-              user?.Profile_Picture
-                ? { uri: user.Profile_Picture }
-                : require('../../../assets/images/default-avatar.png')
-            }
-            style={styles.profileImage}
-          />
-          
-          <Text style={styles.name}>
-            {user?.First_Name} {user?.Second_name}
-          </Text>
-          
-          <View style={styles.userInfoContainer}>
-            <FontAwesome name="envelope" size={16} color={Colors.secondary} />
-            <Text style={styles.userInfoText}>
-              {user?.email}
+            <Image
+              source={
+                user?.Profile_Picture
+                  ? { uri: user.Profile_Picture }
+                  : require('../../../assets/images/default-avatar.png')
+              }
+              style={styles.profileImage}
+            />
+            
+            <Text style={styles.name}>
+              {user?.First_Name} {user?.Second_name}
             </Text>
-          </View>
-        </View>
-
-        <View style={styles.infoSection}>
-          <View style={styles.infoItem}>
-            <FontAwesome name="user" size={20} color={Colors.primary} />
-            <Text style={styles.infoLabel}>Description</Text>
-            <Text style={styles.infoText}>
-              {user?.Description || 'No description added'}
-            </Text>
+            
+            <View style={styles.userInfoContainer}>
+              <FontAwesome name="envelope" size={16} color={Colors.secondary} />
+              <Text style={styles.userInfoText}>
+                {user?.email}
+              </Text>
+            </View>
           </View>
 
-          {/* User Information Section */}
           <View style={styles.infoSection}>
-            <ProfileRow icon="business-outline" label="Department" value={userData?.Department} />
-            <ProfileRow icon="sparkles-outline" label="Date of Birth" value={userData?.Date_Of_Birth} />
-            <ProfileRow icon="mail-outline" label="E-Mail" value={user?.email || ''} />
-            <ProfileRow icon="female-outline" label="Gender" value={userData?.Gender} />
-            <ProfileRow icon="map-outline" label="Region" value={userData?.Region} />
+            <View style={styles.infoItem}>
+              <FontAwesome name="user" size={20} color={Colors.primary} />
+              <Text style={styles.infoLabel}>Description</Text>
+              <Text style={styles.infoText}>
+                {user?.Description || 'No description added'}
+              </Text>
+            </View>
+
+            <View style={styles.infoSection}>
+              <ProfileRow icon="business-outline" label="Department" value={userData?.Department} /> 
+              <ProfileRow icon="sparkles-outline" label="Date of Birth" value={userData?.Date_Of_Birth} />
+              <ProfileRow icon="mail-outline" label="E-Mail" value={user?.email || ''} />
+              <ProfileRow icon="female-outline" label="Gender" value={userData?.Gender} />
+              <ProfileRow icon="map-outline" label="Region" value={userData?.Region} />
+            </View>
           </View>
+
+          {userData?.role === 'admin' && (
+            <TouchableOpacity 
+              style={styles.adminButton}
+              onPress={() => router.push('/(app)/(admin)/Dashboard')}
+            >
+              <Text style={styles.editButtonText}>Admin Dashboard</Text>
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+            <Ionicons name="log-out-outline" size={30} color="white" />
+          </TouchableOpacity>
         </View>
-
-        {userData?.role === 'admin' && (
-          <TouchableOpacity 
-            style={styles.adminButton}
-            onPress={() => router.push('/(app)/(admin)/Dashboard')}
-          >
-            <Text style={styles.editButtonText}>Admin Dashboard</Text>
-          </TouchableOpacity>
-        )}
-
-        {userData?.role === 'admin' && (
-          <TouchableOpacity 
-            style={styles.adminButton}
-            onPress={() => router.push('/(app)/(admin)/Dashboard')}
-          >
-            <Text style={styles.editButtonText}>Admin Dashboard</Text>
-          </TouchableOpacity>
-        )}
-
-       
-        <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-          <Ionicons name="log-out-outline" size={30} color="white" />
-        </TouchableOpacity>
       </ScrollView>
       <UserFooter />
     </View>
-  );}
+  );
+}
 
 // Component for Rows
 interface ProfileRowProps {
   icon: string;
   label: string;
-  value: string;
+  value?: string;
 }
 
-const ProfileRow = ({ icon, label, value }: ProfileRowProps) => (
+const ProfileRow = ({ icon, label, value = '' }: ProfileRowProps) => (
   <View style={styles.infoRow}>
     <Ionicons name={icon as any} size={24} color="#00bfa5" />
     <View style={styles.infoTextContainer}>
@@ -185,66 +163,31 @@ const styles = StyleSheet.create({
   },
   scrollViewContent: {
     flexGrow: 1,
-    paddingBottom: 30,
   },
-  header: {
-    height: 160,
+  profileHeader: {
+    width: '100%',
     alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    elevation: 5,
-    position: 'relative',
+    paddingTop: 20,
   },
-  
-  headerTitle: {
-    fontSize: 35,
+  name: {
+    fontSize: 24,
     fontWeight: 'bold',
-    color: 'white',
-    position: 'absolute',  // Allow full control of positioning
-    top: '50%',  // Center vertically
-    left: 0,
-    right: 0,
-    textAlign: 'center',  // Center text horizontally
-   
-  },
-  profileImageContainer: {
-    alignItems: 'center',
-    marginTop: -50,  // Overlaps header
-  },
-  profileImage: {
-    width: 130,
-    height: 130,
-    borderRadius: 65,
-    borderWidth: 3,
-    borderColor: 'white',
-    marginTop: 20,
-  },
-  profileName: {
-    fontSize: 25,
-    fontWeight: 'light',
-    color: '#333',
     marginTop: 10,
+    color: Colors.text,
   },
-  editButton: {
-    position: 'absolute',
-    top: 60,
-    right: 30,
+  userInfoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
   },
-  goBackButton: {
-    position: 'absolute',
-    top: 60,
-    left: 30,
+  userInfoText: {
+    marginLeft: 8,
+    fontSize: 16,
+    color: Colors.text,
   },
-  body: {
-    marginHorizontal: 20,
-    backgroundColor: 'white',
-    borderRadius: 15,
-    padding: 25,
-    marginTop: 20,
-    elevation: 3,
+  infoItem: {
+    marginBottom: 15,
+    alignItems: 'center',
   },
   infoSection: {
     marginHorizontal: 20,
@@ -272,13 +215,6 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: 16,
     color: Colors.text,
-  },
-  editButton: {
-    backgroundColor: Colors.primary,
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 10,
   },
   notificationsButton: {
     backgroundColor: Colors.secondary,
@@ -313,5 +249,17 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginBottom: 10,
+  },
+  profileImageContainer: {
+    alignItems: 'center',
+    marginTop: -50,  // Overlaps header
+  },
+  profileImage: {
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    borderWidth: 3,
+    borderColor: 'white',
+    marginTop: 20,
   },
 });
