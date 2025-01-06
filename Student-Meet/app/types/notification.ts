@@ -12,4 +12,4 @@ export interface Notification {
 // Add default export
 export default function Notification() {
   return null;
-} 
+}

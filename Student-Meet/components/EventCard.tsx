@@ -139,16 +139,55 @@ const EventCard = ({ event, style, isAdmin, onEventUpdate }: EventCardProps) => 
     );
   };
 
-  const handleEdit = (e: GestureResponderEvent) => {
+  const handleEdit = async (e: GestureResponderEvent) => {
     e.stopPropagation();
-    router.push({
-      pathname: '/events/activity_add',
-      params: { 
+    if (!event || !user || !event.id) return;
+
+    try {
+      const eventRef = doc(db, 'Event', event.id);
+      const eventDoc = await getDoc(eventRef);
+      const currentEvent = eventDoc.data();
+
+      if (!currentEvent) return;
+
+      const notificationData = {
+        type: 'event_edited',
+        userId: currentEvent.User_ID,
+        userName: user.email,
         eventId: event.id,
-        isEditing: '1',
-        returnTo: isAdmin ? 'admin' : 'home'
+        eventTitle: event.Event_Title,
+        createdAt: new Date().toISOString(),
+        read: false
+      };
+
+      // Notify the creator
+      await addDoc(collection(db, 'Notifications'), notificationData);
+
+      // Notify participants
+      if (currentEvent.participants) {
+        await Promise.all(currentEvent.participants.map(async (participantId: string) => {
+          await addDoc(collection(db, 'Notifications'), {
+            ...notificationData,
+            userId: participantId
+          });
+        }));
       }
-    });
+
+      // Add a small delay before navigating to ensure notifications are sent
+      setTimeout(() => {
+        router.push({
+          pathname: '/events/activity_add',
+          params: { 
+            eventId: event.id,
+            isEditing: '1',
+            returnTo: isAdmin ? 'admin' : 'home'
+          }
+        });
+      }, 500); // 500ms delay
+    } catch (error) {
+      console.error('Error editing event:', error);
+      Alert.alert('Error', 'Failed to edit event');
+    }
   };
 
   return (
