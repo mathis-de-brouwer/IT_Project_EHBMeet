@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { doc, updateDoc, arrayUnion, getDoc, deleteDoc, addDoc, collection } from 'firebase/firestore';
 import { db } from '../../../firebase_backup';
@@ -9,6 +9,14 @@ import UserFooter from '../../../components/footer';
 import Colors from '../../../constants/Colors';
 import { useContext } from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import { getUserById } from '../../../utils/userUtils';
+
+interface ParticipantData {
+  User_ID: string;
+  First_Name: string;
+  Second_name: string;
+  email: string;
+}
 
 export default function EventDetailsScreen() {
   const { eventId, returnTo, isCreator } = useLocalSearchParams();
@@ -18,6 +26,8 @@ export default function EventDetailsScreen() {
   const router = useRouter();
   const [participantCount, setParticipantCount] = useState(0);
   const [hasJoined, setHasJoined] = useState(false);
+  const [participants, setParticipants] = useState<ParticipantData[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const fetchEventDetails = async () => {
@@ -32,6 +42,25 @@ export default function EventDetailsScreen() {
     };
     fetchEventDetails();
   }, [eventId, user]);
+
+  useEffect(() => {
+    const fetchParticipants = async () => {
+      if (!event?.participants || !user) return;
+      
+      setIsLoading(true);
+      try {
+        const participantPromises = event.participants.map(id => getUserById(id));
+        const participantData = await Promise.all(participantPromises);
+        setParticipants(participantData.filter(p => p !== null) as ParticipantData[]);
+      } catch (error) {
+        console.error('Error fetching participants:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchParticipants();
+  }, [event?.participants]);
 
   const handleJoinEvent = async () => {
     if (!event || !user || isJoining) return;
@@ -294,6 +323,42 @@ export default function EventDetailsScreen() {
           </Text>
         </View>
 
+        {event.User_ID === user?.User_ID && (
+          <View style={styles.participantsSection}>
+            <Text style={styles.label}>Participants List</Text>
+            {isLoading ? (
+              <ActivityIndicator color={Colors.primary} />
+            ) : participants.length > 0 ? (
+              <View style={styles.participantsList}>
+                {participants.map((participant) => (
+                  <TouchableOpacity
+                    key={participant.User_ID}
+                    style={styles.participantCard}
+                    onPress={() => router.push({
+                      pathname: '/profile/MyProfile' as any,
+                      params: { userId: participant.User_ID }
+                    })}
+                  >
+                    <View style={styles.participantInfo}>
+                      <Text style={styles.participantName}>
+                        {participant.First_Name} {participant.Second_name}
+                      </Text>
+                      <Text style={styles.participantEmail}>{participant.email}</Text>
+                    </View>
+                    <Ionicons 
+                      name="chevron-forward" 
+                      size={24} 
+                      color={Colors.secondary} 
+                    />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : (
+              <Text style={styles.noParticipants}>No participants yet</Text>
+            )}
+          </View>
+        )}
+
         {returnTo === 'admin' ? (
           <View style={styles.buttonContainer}>
             <TouchableOpacity 
@@ -476,5 +541,46 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     borderRadius: 8,
     alignItems: 'center',
+  },
+  participantsSection: {
+    marginTop: 20,
+    backgroundColor: 'white',
+    borderRadius: 15,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  participantsList: {
+    marginTop: 10,
+  },
+  participantCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  participantInfo: {
+    flex: 1,
+  },
+  participantName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  participantEmail: {
+    fontSize: 14,
+    color: Colors.secondary,
+    marginTop: 2,
+  },
+  noParticipants: {
+    textAlign: 'center',
+    color: Colors.placeholder,
+    marginTop: 10,
   },
 });

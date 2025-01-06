@@ -8,6 +8,7 @@ import { getAuth } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import CryptoJS from 'crypto-js';
 import { collection, query, where, getDocs } from 'firebase/firestore';
+import { UserRole } from '../../app/types/user';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -16,6 +17,8 @@ export default function RegisterScreen() {
     Second_name: '',
     email: '',
     Password: '',
+    role: 'student' as UserRole,
+    Blacklisted: false,
   });
 
   const [confirmPassword, setConfirmPassword] = useState('');
