@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import Colors from '../../constants/Colors'; // Your color definitions
 import { useRouter } from 'expo-router';
-import { db, auth } from '../../firebase_backup'; // Import the Firebase instance
+import { db, auth } from '../../firebase'; // Import the Firebase instance
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { getAuth } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import CryptoJS from 'crypto-js';
 import { collection, query, where, getDocs } from 'firebase/firestore';
+import { UserRole } from '../../app/types/user';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -16,6 +17,8 @@ export default function RegisterScreen() {
     Second_name: '',
     email: '',
     Password: '',
+    role: 'student' as UserRole,
+    Blacklisted: false,
   });
 
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -43,6 +46,9 @@ export default function RegisterScreen() {
     setIsRegistering(true);
 
     try {
+
+      
+
       // Validate required fields
       if (!userData.First_Name || !userData.Second_name || !userData.email || !userData.Password || !confirmPassword) {
         Alert.alert('Error', 'Please fill in all required fields');
@@ -143,7 +149,8 @@ export default function RegisterScreen() {
         ...userDataWithoutPassword,
         email: userData.email.toLowerCase(),
         Password: hashedPassword,
-        User_ID: uniqueUserId
+        User_ID: uniqueUserId,
+        role: 'student',
       });
 
       Alert.alert('Success', 'Registration successful!', [

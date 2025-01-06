@@ -1,3 +1,5 @@
+export type UserRole = 'student' | 'admin' | 'ehb' | 'enigma';
+
 export interface UserData {
   First_Name: string;
   Second_name: string;
@@ -6,9 +8,10 @@ export interface UserData {
   Password: string;
   Blacklisted: boolean;
   Description?: string;
-  Discord_name?: string;
   Profile_Picture?: string;
   Steam_name?: string;
+  Discord_name?: string;
+  role: UserRole;
 }
 
 // Add a default export with an empty component to satisfy the router

@@ -9,6 +9,7 @@ const Colors = {
   success: '#4CAF50',  // green
   error: '#F44336',    // red
   lightPrimary: '#e3f2fd',
+  border: '#dfe6e9',
 };
 
 export default Colors;

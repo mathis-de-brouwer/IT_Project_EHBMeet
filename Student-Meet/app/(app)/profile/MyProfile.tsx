@@ -7,7 +7,7 @@ import { useRouter } from 'expo-router';
 import { FontAwesome, FontAwesome5 } from '@expo/vector-icons';
 import { UserData } from '../../types/user';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../../../firebase_backup';
+import { db } from '../../../firebase';
 
 export default function MyProfileScreen() {
   const { user, signOut } = useContext(AuthContext);
@@ -90,6 +90,15 @@ export default function MyProfileScreen() {
           </View>
         </View>
 
+        {user?.role === 'admin' && (
+          <TouchableOpacity 
+            style={styles.adminButton}
+            onPress={() => router.push('/(app)/(admin)/Dashboard')}
+          >
+            <Text style={styles.editButtonText}>Admin Dashboard</Text>
+          </TouchableOpacity>
+        )}
+
         <TouchableOpacity 
           style={styles.editButton}
           onPress={() => router.push('/profile/MyProfile_edit')}
@@ -114,6 +123,8 @@ export default function MyProfileScreen() {
       <UserFooter />
     </View>
   );
+
+  
 }
 
 const styles = StyleSheet.create({
@@ -210,5 +221,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: 'red',
     marginTop: 5,
+  },
+  adminButton: {
+    backgroundColor: '#4a5568',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 10,
   },
 });

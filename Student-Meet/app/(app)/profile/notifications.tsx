@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { collection, query, where, getDocs, updateDoc, doc, onSnapshot, getDoc } from 'firebase/firestore';
-import { db } from '../../../firebase_backup';
+import { db } from '../../../firebase';
 import { Notification } from '../../types/notification';
 import { AuthContext } from '../../_layout';
 import UserFooter from '../../../components/footer';
@@ -43,6 +43,8 @@ export default function NotificationsScreen() {
   }, [user?.User_ID]);
 
   const handleNotificationPress = async (notification: Notification) => {
+    if (!notification.eventId) return;
+
     try {
       // First update the read status
       await updateDoc(doc(db, 'Notifications', notification.id), {
@@ -88,6 +90,22 @@ export default function NotificationsScreen() {
         return `Event "${notification.eventTitle}" has been cancelled`;
       case 'event_edited':
         return `Event "${notification.eventTitle}" has been updated`;
+      case 'admin_event_edit':
+      case 'admin_profile_edit':
+        return (
+          <View>
+            <Text style={styles.adminActionText}>
+              An administrator ({notification.userName}) {
+                notification.type === 'admin_event_edit' 
+                  ? `edited your event "${notification.eventTitle}"`
+                  : 'made changes to your profile'
+              }
+            </Text>
+            <Text style={styles.adminReasonText}>
+              Reason: {notification.adminReason}
+            </Text>
+          </View>
+        );
       default:
         return 'New notification';
     }
@@ -117,12 +135,20 @@ export default function NotificationsScreen() {
               key={notification.id}
               style={[
                 styles.notificationCard,
-                !notification.read && styles.unreadCard
+                !notification.read && styles.unreadCard,
+                (notification.type === 'admin_event_edit' || 
+                 notification.type === 'admin_profile_edit') && 
+                 styles.adminNotificationCard
               ]}
               onPress={() => handleNotificationPress(notification)}
             >
               <View style={styles.notificationContent}>
-                <Text style={styles.notificationText}>
+                <Text style={[
+                  styles.notificationText,
+                  (notification.type === 'admin_event_edit' || 
+                   notification.type === 'admin_profile_edit') && 
+                   styles.adminNotificationText
+                ]}>
                   {getNotificationMessage(notification)}
                 </Text>
                 <Text style={styles.timestamp}>
@@ -178,9 +204,14 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   unreadCard: {
-    backgroundColor: '#e3f2fd', 
+    backgroundColor: '#e3f2fd',
     borderLeftWidth: 4,
     borderLeftColor: Colors.primary,
+  },
+  adminNotificationCard: {
+    backgroundColor: '#fff4f4',
+    borderLeftWidth: 4,
+    borderLeftColor: Colors.error,
   },
   notificationContent: {
     flex: 1,
@@ -189,6 +220,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: Colors.text,
     marginBottom: 8,
+    flexShrink: 1,
+  },
+  adminNotificationText: {
+    fontSize: 16,
+    color: Colors.text,
   },
   timestamp: {
     fontSize: 12,
@@ -200,4 +236,15 @@ const styles = StyleSheet.create({
     marginTop: 40,
     fontSize: 16,
   },
-}); 
+  adminActionText: {
+    fontSize: 16,
+    color: Colors.text,
+    marginBottom: 8,
+  },
+  adminReasonText: {
+    fontSize: 15,
+    color: Colors.error,
+    fontStyle: 'italic',
+    marginTop: 4,
+  },
+});
