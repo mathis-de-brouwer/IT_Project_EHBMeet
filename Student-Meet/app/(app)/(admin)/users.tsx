@@ -1,15 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput, Modal } from 'react-native';
 import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from '@/firebase';
 import Colors from '../../../constants/Colors';
 import { UserData, UserRole } from '../../../app/types/user';
 import AdminHeader from '../../../components/AdminHeader';
 import UserFooter from '../../../components/footer';
-
+import { FontAwesome } from '@expo/vector-icons';
 
 export default function UsersScreen() {
   const [users, setUsers] = useState<UserData[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<UserData[]>([]);
+  const [showSearchModal, setShowSearchModal] = useState(false);
 
   // Restrict available roles - remove 'admin' from general selection
   const standardRoles: UserRole[] = ['student', 'ehb', 'enigma'];
@@ -108,12 +111,31 @@ export default function UsersScreen() {
     fetchUsers();
   }, []);
 
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    const queryLower = query.toLowerCase();
+    const filtered = users.filter(user => 
+      user.First_Name.toLowerCase().includes(queryLower) || 
+      user.Second_name.toLowerCase().includes(queryLower)
+    );
+    setSearchResults(filtered);
+  };
+
   return (
     <View style={styles.container}>
-      <AdminHeader title="Manage Users" showSearch={true} />
+      <AdminHeader 
+        title="Manage Users" 
+        showSearch={true} 
+        onSearchPress={() => setShowSearchModal(true)}
+      />
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollViewContent}>
         <Text style={styles.totalCount}>Total Users: {users.length}</Text>
-        {users.map((user) => (
+        {(searchQuery ? searchResults : users).map((user) => (
           <View key={user.User_ID} style={styles.userCard}>
             <Text style={styles.userName}>{user.First_Name} {user.Second_name}</Text>
             <Text style={styles.userEmail}>{user.email}</Text>
@@ -164,6 +186,37 @@ export default function UsersScreen() {
         ))}
       </ScrollView>
       <UserFooter />
+
+      <Modal
+        visible={showSearchModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowSearchModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.searchContainer}>
+            <View style={styles.searchHeader}>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search users..."
+                value={searchQuery}
+                onChangeText={handleSearch}
+                autoFocus
+              />
+              <TouchableOpacity 
+                style={styles.closeButton}
+                onPress={() => {
+                  setShowSearchModal(false);
+                  setSearchQuery('');
+                  setSearchResults([]);
+                }}
+              >
+                <FontAwesome name="times" size={24} color={Colors.text} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -250,5 +303,38 @@ const styles = StyleSheet.create({
     color: Colors.error,
     fontSize: 12,
     fontWeight: 'bold',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  searchContainer: {
+    backgroundColor: Colors.background,
+    paddingTop: 50,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  searchHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  searchInput: {
+    flex: 1,
+    height: 40,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    marginRight: 10,
+    fontSize: 16,
+  },
+  closeButton: {
+    padding: 5,
   },
 });
