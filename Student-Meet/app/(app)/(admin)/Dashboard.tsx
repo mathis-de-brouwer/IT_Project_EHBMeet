@@ -10,8 +10,8 @@ export default function AdminDashboard() {
 
   return (
     <View style={styles.container}>
-      <AdminHeader title="Admin Dashboard" />
-      <ScrollView style={styles.scrollView}>
+      <AdminHeader title="Admin Dashboard" showSearch={false} />
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollViewContent}>
         <TouchableOpacity 
           style={styles.card}
           onPress={() => router.push('/(app)/(admin)/users')}
@@ -38,7 +38,10 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollViewContent: {
     padding: 20,
+    paddingTop: 0,
   },
   title: {
     fontSize: 24,

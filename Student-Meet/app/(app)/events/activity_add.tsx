@@ -723,4 +723,14 @@ const styles = StyleSheet.create({
   buttonDisabled: {
     opacity: 0.7,
   },
+  categoryText: {
+    fontSize: 14,
+    color: Colors.text,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: Colors.text,
+  },
 });

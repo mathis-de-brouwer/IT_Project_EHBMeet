@@ -1,66 +1,68 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { FontAwesome } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '../constants/Colors';
 
 interface AdminHeaderProps {
   title: string;
+  children?: React.ReactNode;
+  showSearch?: boolean;
 }
 
-export default function AdminHeader({ title }: AdminHeaderProps) {
-  const router = useRouter();
-
-  const handleBack = () => {
-    if (title === "Admin Dashboard") {
-      router.push('/profile/MyProfile' as any);
-    } else {
-      router.push('/(app)/(admin)/Dashboard' as any);
-    }
-  };
-
+const AdminHeader: React.FC<AdminHeaderProps> = ({ title, showSearch = false }) => {
   return (
-    <View style={styles.header}>
-      <TouchableOpacity 
-        style={styles.backButton}
-        onPress={handleBack}
+    <>
+      <LinearGradient 
+        colors={['#44c9ea', 'white']} 
+        style={styles.header}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
       >
-        <Ionicons name="arrow-back" size={24} color={Colors.text} />
-      </TouchableOpacity>
-      
-      <Text style={styles.title}>{title}</Text>
-      
-      <TouchableOpacity 
-        style={styles.profileButton}
-        onPress={() => router.push('/profile/MyProfile' as any)}
-      >
-        <Ionicons name="person-circle-outline" size={24} color={Colors.text} />
-      </TouchableOpacity>
-    </View>
+        <View style={styles.headerContent}>
+          <Text style={styles.title}>{title}</Text>
+          {showSearch && (
+            <TouchableOpacity style={styles.searchButton}>
+              <FontAwesome name="search" size={24} color="white" />
+            </TouchableOpacity>
+          )}
+        </View>
+      </LinearGradient>
+      <View style={styles.contentSpacer} />
+    </>
   );
-}
+};
 
 const styles = StyleSheet.create({
   header: {
-    flexDirection: 'row',
+    height: 150,
+    width: '100%',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+  },
+  headerContent: {
+    flex: 1,
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 48,
-    paddingBottom: 16,
-    backgroundColor: Colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    justifyContent: 'center',
+    paddingTop: 20,
   },
   title: {
-    fontSize: 20,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: Colors.text,
+    color: '#333',
+    fontFamily: 'Poppins',
   },
-  backButton: {
-    padding: 8,
+  searchButton: {
+    position: 'absolute',
+    right: 20,
+    top: 20,
   },
-  profileButton: {
-    padding: 8,
+  contentSpacer: {
+    height: 150,
   },
-}); 
+});
+
+export default AdminHeader; 

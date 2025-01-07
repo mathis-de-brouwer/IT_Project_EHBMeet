@@ -6,16 +6,20 @@ import Colors from '../constants/Colors';
 
 interface HeaderProps {
   title: string;
+  children?: React.ReactNode;
+  showSearch?: boolean;
 }
 
-const Header: React.FC<HeaderProps> = ({ title }) => {
+const Header: React.FC<HeaderProps> = ({ title, showSearch = false }) => {
   return (
     <LinearGradient colors={['#44c9ea', 'white']} style={styles.header}>
       <View style={styles.headerContent}>
         <Text style={styles.title}>{title}</Text>
-        <TouchableOpacity style={styles.searchButton}>
-          <FontAwesome name="search" size={24} color="white" />
-        </TouchableOpacity>
+        {showSearch && (
+          <TouchableOpacity style={styles.searchButton}>
+            <FontAwesome name="search" size={24} color="white" />
+          </TouchableOpacity>
+        )}
       </View>
     </LinearGradient>
   );
@@ -54,5 +58,5 @@ const styles = StyleSheet.create({
     top: 0,
   },
 });
-
 export default Header;
+

@@ -7,6 +7,7 @@ import { UserData, UserRole } from '../../../app/types/user';
 import AdminHeader from '../../../components/AdminHeader';
 import UserFooter from '../../../components/footer';
 
+
 export default function UsersScreen() {
   const [users, setUsers] = useState<UserData[]>([]);
 
@@ -109,8 +110,8 @@ export default function UsersScreen() {
 
   return (
     <View style={styles.container}>
-      <AdminHeader title="Manage Users" />
-      <ScrollView style={styles.scrollView}>
+      <AdminHeader title="Manage Users" showSearch={true} />
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollViewContent}>
         <Text style={styles.totalCount}>Total Users: {users.length}</Text>
         {users.map((user) => (
           <View key={user.User_ID} style={styles.userCard}>
@@ -174,7 +175,10 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollViewContent: {
     padding: 20,
+    paddingTop: 0,
   },
   totalCount: {
     fontSize: 16,

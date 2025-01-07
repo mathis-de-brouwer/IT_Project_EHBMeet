@@ -76,7 +76,13 @@ export default function MyProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <Header title="Profile" />
+      <Header title="Profile" showSearch={false} />
+      <TouchableOpacity 
+        style={styles.editButton}
+        onPress={() => router.push('/profile/MyProfile_edit')}
+      >
+        <Ionicons name="create-outline" size={24} color={Colors.primary} />
+      </TouchableOpacity>
       
       <ScrollView style={[styles.scrollViewContent, { marginTop: 150 }]}>
         <View style={styles.profileHeader}>
@@ -261,5 +267,22 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: 'white',
     marginTop: 20,
+  },
+  editButton: {
+    position: 'absolute',
+    left: 20,
+    top: 45,
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: 'white',
+    zIndex: 2000,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
 });

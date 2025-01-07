@@ -186,7 +186,7 @@ const Agenda = () => {
   return (
     <View style={styles.container}>
       <View style={styles.headerContainer}>
-        <Header title="My Events" />
+        <Header title="My Events" showSearch={true} />
       </View>
 
       <ScrollView 
