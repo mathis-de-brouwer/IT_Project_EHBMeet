@@ -7,6 +7,8 @@ import Colors from '../../../constants/Colors';
 import { AuthContext } from '../../_layout';
 import UserFooter from '../../../components/footer';
 import { EventCategory } from '../../types/event';
+import { Ionicons } from '@expo/vector-icons';
+
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 interface EventData {
@@ -333,13 +335,6 @@ export default function ActivityAddScreen() {
 
   const title = eventId ? 'Edit Event' : 'Create New Event';
 
-  const handleParticipantPress = (participantId: string) => {
-    router.push({
-      pathname: '/profile/profile_info',
-      params: { userId: participantId }
-    });
-  };
-
   return (
     <View style={styles.mainContainer}>
       <ScrollView style={styles.container}>
@@ -372,12 +367,13 @@ export default function ActivityAddScreen() {
             />
           ) : (
             <TouchableOpacity 
-              style={[styles.input, errors.Date && styles.inputError]}
+              style={[styles.datePicker, errors.Date && styles.inputError]}
               onPress={() => setShowDatePicker(true)}
             >
               <Text style={[styles.inputText, !eventData.Date && styles.placeholder]}>
                 {eventData.Date || 'Select Date'}
               </Text>
+              <Ionicons name="calendar" size={24} color={Colors.text} />
             </TouchableOpacity>
           )}
           {touched.Date && errors.Date && (
@@ -444,15 +440,15 @@ export default function ActivityAddScreen() {
               <TouchableOpacity
                 key={id}
                 style={[
-                  styles.categoryButton,
-                  eventData.Category_id === id && styles.categoryButtonSelected,
+                  styles.category,
+                  eventData.Category_id === id && styles.selectedCategory,
                   id === 'ehb-events' && styles.ehbCategory
                 ]}
                 onPress={() => handleInputChange('Category_id', id)}
               >
                 <Text style={[
-                  styles.categoryButtonText,
-                  eventData.Category_id === id && styles.categoryButtonTextSelected
+                  styles.categoryText,
+                  eventData.Category_id === id && styles.selectedCategoryText
                 ]}>
                   {label}
                 </Text>
@@ -535,18 +531,12 @@ export default function ActivityAddScreen() {
 
 const styles = StyleSheet.create({
   mainContainer: {
+    marginTop: 30,
     flex: 1,
     backgroundColor: Colors.background,
   },
   container: {
-    flex: 1,
     padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: Colors.text,
   },
   formSection: {
     backgroundColor: 'white',
@@ -562,15 +552,14 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     fontWeight: '600',
+    marginBottom: 5,
     color: Colors.text,
-    marginBottom: 8,
-    marginTop: 16,
   },
   input: {
     width: '100%',
     minHeight: 50,
-    borderColor: Colors.inputBorder,
     borderWidth: 1,
+    borderColor: Colors.inputBorder,
     borderRadius: 8,
     paddingHorizontal: 15,
     paddingVertical: 12,
@@ -582,48 +571,45 @@ const styles = StyleSheet.create({
     height: 100,
     textAlignVertical: 'top',
   },
+  datePicker: {
+    width: '100%',
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
+    borderRadius: 8,
+    padding: 15,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: Colors.inputBackground,
+    marginBottom: 15,
+  },
   categoryContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 10,
     marginTop: 8,
   },
-  categoryButton: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
+  category: {
+    flex: 1,
     borderWidth: 1,
-    borderColor: Colors.primary,
-    backgroundColor: 'white',
-  },
-  categoryButtonSelected: {
-    backgroundColor: Colors.primary,
-  },
-  categoryButtonText: {
-    color: Colors.primary,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  categoryButtonTextSelected: {
-    color: 'white',
-  },
-  submitButton: {
-    backgroundColor: Colors.primary,
-    paddingVertical: 15,
+    borderColor: Colors.inputBorder,
     borderRadius: 8,
+    padding: 10,
+    backgroundColor: Colors.inputBackground,
     alignItems: 'center',
-    marginTop: 30,
+    marginHorizontal: 5,
   },
-  submitButtonText: {
+  selectedCategory: {
+    backgroundColor: Colors.primary,
+  },
+  selectedCategoryText: {
     color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
   },
-  buttonDisabled: {
-    opacity: 0.7,
+  ehbCategory: {
+    borderColor: Colors.primary,
+    borderWidth: 2,
   },
   inputText: {
-    fontSize: 16,
     color: Colors.text,
   },
   placeholder: {
@@ -638,10 +624,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
     marginLeft: 4,
-  },
-  ehbCategory: {
-    borderColor: Colors.primary,
-    borderWidth: 2,
   },
   modalOverlay: Platform.select({
     web: {
@@ -724,5 +706,21 @@ const styles = StyleSheet.create({
   },
   modalSubmitButton: {
     backgroundColor: Colors.primary,
+  },
+  submitButton: {
+    backgroundColor: Colors.primary,
+    padding: 15,
+    borderRadius: 8,
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  submitButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  buttonDisabled: {
+    opacity: 0.7,
   },
 });
