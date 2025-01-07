@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   header: {
-    height: 130,
+    height: 140,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   body: {
-    paddingTop: 200,
+    paddingTop: 25,
     paddingBottom: 100,
     paddingHorizontal: 16,
   },
