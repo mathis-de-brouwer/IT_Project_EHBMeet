@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 20,
+    paddingTop: 40,
     flexDirection: 'row',
   },
   title: {
@@ -93,18 +93,18 @@ const styles = StyleSheet.create({
   backButton: {
     position: 'absolute',
     left: 20,
-    top: 20,
+    top: 45,
     padding: 8,
   },
   searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
     position: 'absolute',
     right: 20,
-    top: 20,
+    top: 45,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   searchButton: {
-    marginLeft: 10,
+    padding: 8,
   },
   searchInput: {
     height: 40,
@@ -112,6 +112,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     paddingHorizontal: 15,
     fontSize: 16,
+    width: 200,
   },
   contentSpacer: {
     height: 150,

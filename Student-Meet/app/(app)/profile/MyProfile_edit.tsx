@@ -9,6 +9,7 @@ import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/firebase';
 import Colors from '../../../constants/Colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { UserData } from '@/app/types/user';
 
 export default function MyProfileEditScreen() {
   const { user, signIn } = useContext(AuthContext);

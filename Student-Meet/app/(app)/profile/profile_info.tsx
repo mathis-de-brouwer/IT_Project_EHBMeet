@@ -61,7 +61,7 @@ export default function ProfileInfoScreen() {
     <View style={styles.container}>
       
      
-      <Header title="Profile" showSearch={false} />
+      <Header title="Profile" />
       <ScrollView style={styles.scrollView}>
       <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
         <Ionicons name="arrow-back" size={24} color={Colors.text} />

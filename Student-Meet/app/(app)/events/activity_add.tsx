@@ -440,7 +440,7 @@ export default function ActivityAddScreen() {
               <TouchableOpacity
                 key={id}
                 style={[
-                  styles.category,
+                  styles.categoryButton,
                   eventData.Category_id === id && styles.selectedCategory,
                   id === 'ehb-events' && styles.ehbCategory
                 ]}
@@ -586,18 +586,19 @@ const styles = StyleSheet.create({
   categoryContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
-    marginTop: 8,
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    marginBottom: 20,
   },
-  category: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: Colors.inputBorder,
+  categoryButton: {
+    width: '48%', // Makes it 2 per row
+    paddingVertical: 10,
+    marginBottom: 10,
     borderRadius: 8,
-    padding: 10,
-    backgroundColor: Colors.inputBackground,
+    backgroundColor: '#f0f0f0',
     alignItems: 'center',
-    marginHorizontal: 5,
+    borderWidth: 1,
+    borderColor: '#ddd',
   },
   selectedCategory: {
     backgroundColor: Colors.primary,

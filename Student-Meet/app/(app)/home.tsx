@@ -1,13 +1,14 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl, GestureResponderEvent } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl, GestureResponderEvent, TextInput } from 'react-native';
 import UserFooter from '../../components/footer';
 import Colors from '../../constants/Colors';
 import { db } from '@/firebase';
-import { collection, getDocs, onSnapshot, deleteDoc, query, where } from 'firebase/firestore';
+import { collection, getDocs, onSnapshot, deleteDoc, query, where, doc } from 'firebase/firestore';
 import { AuthContext } from '../../app/_layout';
 import EventCard from '../../components/EventCard';
 import { EventData } from '../types/event';
 import Header from '../../components/header';
+import { FontAwesome } from '@expo/vector-icons';
 
 const filterAndSortEvents = (eventsData: EventData[]) => {
   const now = new Date();
@@ -147,11 +148,7 @@ const Home = () => {
 
   return (
     <View style={styles.container}>
-      <Header 
-        title="Student Meet" 
-        showSearch={true} 
-        onSearch={handleSearch}
-      />
+      <Header title="Student Meet" />
       <ScrollView 
         contentContainerStyle={styles.body}
         showsVerticalScrollIndicator={false}
@@ -219,6 +216,19 @@ const Home = () => {
             ]}>Creative</Text>
           </TouchableOpacity>
         </View>
+        
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search events..."
+            value={searchQuery}
+            onChangeText={handleSearch}
+            placeholderTextColor={Colors.placeholder}
+          />
+          <TouchableOpacity style={styles.searchButton}>
+            <FontAwesome name="search" size={20} color="white" />
+          </TouchableOpacity>
+        </View>
 
         {searchResults.length > 0 ? 
           searchResults.map((event) => renderEventCard(event))
@@ -237,7 +247,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   headerSpacer: {
-    height: 140,
+    height: 130,
   },
   body: {
     paddingBottom: 100,
@@ -254,6 +264,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 10,
     marginBottom: 20,
+    marginTop: 30,
   },
   filterButton: {
     paddingHorizontal: 15,
@@ -278,6 +289,35 @@ const styles = StyleSheet.create({
   pastEvent: {
     opacity: 0.5,
     backgroundColor: '#f5f5f5',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 20,
+    marginHorizontal: 10,
+    marginBottom: 20,
+    padding: 5,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  searchInput: {
+    flex: 1,
+    height: 40,
+    paddingHorizontal: 15,
+    fontSize: 16,
+    color: Colors.text,
+  },
+  searchButton: {
+    padding: 8,
+    backgroundColor: Colors.primary,
+    borderRadius: 20,
   },
 });
 

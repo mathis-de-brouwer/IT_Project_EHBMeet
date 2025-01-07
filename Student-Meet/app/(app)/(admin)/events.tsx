@@ -61,7 +61,7 @@ export default function EventsScreen() {
     <View style={styles.container}>
       <AdminHeader 
         title="Manage Events" 
-        showSearch={true} 
+        showSearch={false} 
         onSearch={handleSearch}
       />
       <ScrollView
@@ -75,6 +75,21 @@ export default function EventsScreen() {
           />
         }
       >
+        <View style={styles.headerSpacer} />
+        
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search events..."
+            value={searchQuery}
+            onChangeText={handleSearch}
+            placeholderTextColor={Colors.placeholder}
+          />
+          <TouchableOpacity style={styles.searchButton}>
+            <FontAwesome name="search" size={20} color="white" />
+          </TouchableOpacity>
+        </View>
+
         <Text style={styles.subtitle}>Total Events: {filteredEvents.length}</Text>
         {filteredEvents.map((event) => (
           <EventCard
@@ -102,6 +117,7 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
     padding: 20,
+    marginTop: -20,
   },
   subtitle: {
     fontSize: 16,
@@ -113,5 +129,37 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 10,
     color: Colors.text,
-  }
+  },
+  headerSpacer: {
+    height: 15,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 20,
+    marginHorizontal: 10,
+    marginBottom: 20,
+    padding: 5,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  searchInput: {
+    flex: 1,
+    height: 40,
+    paddingHorizontal: 15,
+    fontSize: 16,
+    color: Colors.text,
+  },
+  searchButton: {
+    padding: 8,
+    backgroundColor: Colors.primary,
+    borderRadius: 20,
+  },
 });

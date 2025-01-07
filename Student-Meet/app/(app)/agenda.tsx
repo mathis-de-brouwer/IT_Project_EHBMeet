@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useEffect, useState, useContext } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert, ActivityIndicator, TouchableOpacity, TextInput } from 'react-native';
 import { db } from '@/firebase'; 
 import { collection, query, where, getDocs, doc, deleteDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { AuthContext } from '../_layout';
@@ -9,6 +9,7 @@ import UserFooter from '../../components/footer';
 import Colors from '../../constants/Colors';
 import { EventData } from '../types/event';
 import { useRouter } from 'expo-router';
+import { FontAwesome } from '@expo/vector-icons';
 
 
 const Agenda = () => {
@@ -17,6 +18,7 @@ const Agenda = () => {
   const [eventsCreated, setEventsCreated] = useState<EventData[]>([]);
   const [eventsParticipating, setEventsParticipating] = useState<EventData[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   useEffect(() => {
     if (!user?.User_ID) return;
@@ -141,6 +143,10 @@ const Agenda = () => {
     });
   };
 
+  const handleSearch = (text: string) => {
+    setSearchQuery(text);
+  };
+
   const renderEventCard = (event: EventData, isCreated: boolean) => (
     <TouchableOpacity 
       key={event.id} 
@@ -186,15 +192,23 @@ const Agenda = () => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerContainer}>
-        <Header title="My Events" showSearch={true} />
-      </View>
+      <Header title="My Events" />
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.headerSpacer} />
+        
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search events..."
+            value={searchQuery}
+            onChangeText={handleSearch}
+            placeholderTextColor={Colors.placeholder}
+          />
+          <TouchableOpacity style={styles.searchButton}>
+            <FontAwesome name="search" size={20} color="white" />
+          </TouchableOpacity>
+        </View>
 
-      <ScrollView 
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
         {loading ? (
           <ActivityIndicator size="large" color={Colors.primary} style={styles.loader} />
         ) : (
@@ -340,6 +354,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 15,
+  },
+  headerSpacer: {
+    height: 160,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 20,
+    marginHorizontal: 10,
+    marginBottom: 20,
+    padding: 5,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  searchInput: {
+    flex: 1,
+    height: 40,
+    paddingHorizontal: 15,
+    fontSize: 16,
+    color: Colors.text,
+  },
+  searchButton: {
+    padding: 8,
+    backgroundColor: Colors.primary,
+    borderRadius: 20,
   },
 });
 

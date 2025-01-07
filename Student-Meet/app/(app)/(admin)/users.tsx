@@ -122,10 +122,25 @@ export default function UsersScreen() {
     <View style={styles.container}>
       <AdminHeader 
         title="Manage Users" 
-        showSearch={true} 
+        showSearch={false} 
         onSearch={handleSearch}
       />
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollViewContent}>
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.headerSpacer} />
+        
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search users..."
+            value={searchQuery}
+            onChangeText={handleSearch}
+            placeholderTextColor={Colors.placeholder}
+          />
+          <TouchableOpacity style={styles.searchButton}>
+            <FontAwesome name="search" size={20} color="white" />
+          </TouchableOpacity>
+        </View>
+
         <Text style={styles.totalCount}>Total Users: {users.length}</Text>
         {filteredUsers.map((user) => (
           <View key={user.User_ID} style={styles.userCard}>
@@ -189,6 +204,8 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+    padding: 20,
+    marginTop: -20,
   },
   scrollViewContent: {
     padding: 20,
@@ -264,5 +281,37 @@ const styles = StyleSheet.create({
     color: Colors.error,
     fontSize: 12,
     fontWeight: 'bold',
-  }
+  },
+  headerSpacer: {
+    height: 15,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 20,
+    marginHorizontal: 10,
+    marginBottom: 20,
+    padding: 5,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  searchInput: {
+    flex: 1,
+    height: 40,
+    paddingHorizontal: 15,
+    fontSize: 16,
+    color: Colors.text,
+  },
+  searchButton: {
+    padding: 8,
+    backgroundColor: Colors.primary,
+    borderRadius: 20,
+  },
 });

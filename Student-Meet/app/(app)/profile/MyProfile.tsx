@@ -76,7 +76,7 @@ export default function MyProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <Header title="Profile" showSearch={false} />
+      <Header title="Profile"  />
       <TouchableOpacity 
         style={styles.editButton}
         onPress={() => router.push('/profile/MyProfile_edit')}

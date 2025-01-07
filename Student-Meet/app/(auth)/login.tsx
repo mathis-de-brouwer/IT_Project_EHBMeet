@@ -94,10 +94,10 @@ export default function LoginScreen() {
       const userDoc = querySnapshot.docs[0];
       const userData = {
         ...userDoc.data(),
-        User_ID: userDoc.id  // Make sure to include the document ID
-      };
+        User_ID: userDoc.id,
+      } as UserData;
 
-      // Ensure role exists (for backward compatibility)
+      // Ensure role exists
       if (!userData.role) {
         await updateDoc(doc(db, "Users", userDoc.id), {
           role: 'student'
