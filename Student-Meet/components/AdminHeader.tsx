@@ -1,8 +1,10 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '../constants/Colors';
+import { useRouter } from 'expo-router';
 
 interface AdminHeaderProps {
   title: string;
@@ -11,6 +13,8 @@ interface AdminHeaderProps {
 }
 
 const AdminHeader: React.FC<AdminHeaderProps> = ({ title, showSearch = false }) => {
+  const router = useRouter();
+
   return (
     <>
       <LinearGradient 
@@ -20,7 +24,15 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ title, showSearch = false }) 
         end={{ x: 0.5, y: 1 }}
       >
         <View style={styles.headerContent}>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="chevron-back" size={28} color="#333" />
+          </TouchableOpacity>
+          
           <Text style={styles.title}>{title}</Text>
+          
           {showSearch && (
             <TouchableOpacity style={styles.searchButton}>
               <FontAwesome name="search" size={24} color="white" />
@@ -54,6 +66,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
     fontFamily: 'Poppins',
+  },
+  backButton: {
+    position: 'absolute',
+    left: 20,
+    top: 20,
+    padding: 8,
   },
   searchButton: {
     position: 'absolute',
