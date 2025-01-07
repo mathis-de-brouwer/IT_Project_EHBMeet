@@ -5,7 +5,7 @@ import Colors from '../constants/Colors';
 import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { doc, updateDoc, arrayUnion, getDoc, addDoc, collection, deleteDoc, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db } from '@/firebase';
 import { useContext } from 'react';
 import { AuthContext } from '../app/_layout';
 

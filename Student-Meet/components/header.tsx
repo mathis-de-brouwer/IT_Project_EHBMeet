@@ -1,25 +1,19 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { FontAwesome } from '@expo/vector-icons';
+import { View, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import Colors from '../constants/Colors';
 
 interface HeaderProps {
   title: string;
-  children?: React.ReactNode;
-  showSearch?: boolean;
 }
 
-const Header: React.FC<HeaderProps> = ({ title, showSearch = false }) => {
+const Header: React.FC<HeaderProps> = ({ title }) => {
   return (
-    <LinearGradient colors={['#44c9ea', 'white']} style={styles.header}>
+    <LinearGradient 
+      colors={['#44c9ea', 'white']} 
+      style={styles.header}
+    >
       <View style={styles.headerContent}>
         <Text style={styles.title}>{title}</Text>
-        {showSearch && (
-          <TouchableOpacity style={styles.searchButton}>
-            <FontAwesome name="search" size={24} color="white" />
-          </TouchableOpacity>
-        )}
       </View>
     </LinearGradient>
   );
@@ -27,7 +21,8 @@ const Header: React.FC<HeaderProps> = ({ title, showSearch = false }) => {
 
 const styles = StyleSheet.create({
   header: {
-    height: 150, // Vergroot de hoogte om ruimte te creëren
+    height: 150,
+    width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
     borderBottomLeftRadius: 20,
@@ -42,7 +37,7 @@ const styles = StyleSheet.create({
   headerContent: {
     width: '100%',
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingTop: 40,
     position: 'relative',
   },
   title: {
@@ -50,13 +45,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#333',
     fontFamily: 'Poppins',
-    marginTop: 10, // Plaatst de titel iets naar beneden
-  },
-  searchButton: {
-    position: 'absolute',
-    right: 20, // Plaatst de knop aan de rechterkant
-    top: 0,
+    marginBottom: 20,
   },
 });
-export default Header;
 
+export default Header;

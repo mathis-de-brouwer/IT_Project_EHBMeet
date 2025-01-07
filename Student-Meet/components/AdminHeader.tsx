@@ -1,19 +1,27 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
-import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import Colors from '../constants/Colors';
 import { useRouter } from 'expo-router';
 
 interface AdminHeaderProps {
   title: string;
-  children?: React.ReactNode;
   showSearch?: boolean;
+  onSearch?: (query: string) => void;
 }
 
-const AdminHeader: React.FC<AdminHeaderProps> = ({ title, showSearch = false }) => {
+const AdminHeader: React.FC<AdminHeaderProps> = ({ title, showSearch = false, onSearch }) => {
   const router = useRouter();
+  const [showSearchBar, setShowSearchBar] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    if (onSearch) {
+      onSearch(query);
+    }
+  };
 
   return (
     <>
@@ -28,15 +36,29 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ title, showSearch = false }) 
             style={styles.backButton}
             onPress={() => router.back()}
           >
-            <Ionicons name="chevron-back" size={28} color="#333" />
+            <FontAwesome name="chevron-left" size={24} color="#333" />
           </TouchableOpacity>
           
           <Text style={styles.title}>{title}</Text>
           
           {showSearch && (
-            <TouchableOpacity style={styles.searchButton}>
-              <FontAwesome name="search" size={24} color="white" />
-            </TouchableOpacity>
+            <View style={styles.searchContainer}>
+              {showSearchBar && (
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search..."
+                  value={searchQuery}
+                  onChangeText={handleSearch}
+                  autoFocus
+                />
+              )}
+              <TouchableOpacity 
+                style={styles.searchButton}
+                onPress={() => setShowSearchBar(!showSearchBar)}
+              >
+                <FontAwesome name={showSearchBar ? "times" : "search"} size={24} color="white" />
+              </TouchableOpacity>
+            </View>
           )}
         </View>
       </LinearGradient>
@@ -59,7 +81,8 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: 20,
+    paddingTop: 40,
+    flexDirection: 'row',
   },
   title: {
     fontSize: 28,
@@ -70,17 +93,30 @@ const styles = StyleSheet.create({
   backButton: {
     position: 'absolute',
     left: 20,
-    top: 20,
+    top: 45,
     padding: 8,
   },
-  searchButton: {
+  searchContainer: {
     position: 'absolute',
     right: 20,
-    top: 20,
+    top: 45,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  searchButton: {
+    padding: 8,
+  },
+  searchInput: {
+    height: 40,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    fontSize: 16,
+    width: 200,
   },
   contentSpacer: {
     height: 150,
   },
 });
 
-export default AdminHeader; 
+export default AdminHeader;

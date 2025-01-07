@@ -1,14 +1,14 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert, RefreshControl, Modal, TextInput, GestureResponderEvent } from 'react-native';
-import { FontAwesome } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl, GestureResponderEvent, TextInput } from 'react-native';
 import UserFooter from '../../components/footer';
 import Colors from '../../constants/Colors';
 import { db } from '@/firebase';
-import { collection, getDocs, doc, updateDoc, onSnapshot, deleteDoc, query, where } from 'firebase/firestore';
+import { collection, getDocs, onSnapshot, deleteDoc, query, where, doc } from 'firebase/firestore';
 import { AuthContext } from '../../app/_layout';
 import EventCard from '../../components/EventCard';
 import { EventData } from '../types/event';
+import Header from '../../components/header';
+import { FontAwesome } from '@expo/vector-icons';
 
 const filterAndSortEvents = (eventsData: EventData[]) => {
   const now = new Date();
@@ -58,10 +58,8 @@ const Home = () => {
   const { user } = useContext(AuthContext);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<EventData[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     // Set up real-time listener for events
@@ -150,6 +148,7 @@ const Home = () => {
 
   return (
     <View style={styles.container}>
+      <Header title="Student Meet" />
       <ScrollView 
         contentContainerStyle={styles.body}
         showsVerticalScrollIndicator={false}
@@ -217,6 +216,19 @@ const Home = () => {
             ]}>Creative</Text>
           </TouchableOpacity>
         </View>
+        
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search events..."
+            value={searchQuery}
+            onChangeText={handleSearch}
+            placeholderTextColor={Colors.placeholder}
+          />
+          <TouchableOpacity style={styles.searchButton}>
+            <FontAwesome name="search" size={20} color="white" />
+          </TouchableOpacity>
+        </View>
 
         {searchResults.length > 0 ? 
           searchResults.map((event) => renderEventCard(event))
@@ -224,55 +236,6 @@ const Home = () => {
           filteredEvents.map((event) => renderEventCard(event))
         }
       </ScrollView>
-
-      <LinearGradient 
-        colors={['#44c9ea', 'white']} 
-        style={styles.header}
-        pointerEvents="box-none"
-      >
-        <Text style={styles.title}>Student Meet</Text>
-        <TouchableOpacity onPress={() => setShowSearch(true)}>
-          <FontAwesome name="search" size={24} color="white" />
-        </TouchableOpacity>
-      </LinearGradient>
-
-      <Modal
-        visible={showSearch}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowSearch(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.searchContainer}>
-            <View style={styles.searchHeader}>
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search events..."
-                value={searchQuery}
-                onChangeText={handleSearch}
-                autoFocus
-              />
-              <TouchableOpacity 
-                style={styles.closeButton}
-                onPress={() => {
-                  setShowSearch(false);
-                  setSearchQuery('');
-                  setSearchResults([]);
-                }}
-              >
-                <FontAwesome name="times" size={24} color={Colors.text} />
-              </TouchableOpacity>
-            </View>
-            
-            {searchQuery.length > 0 && (
-              <Text style={styles.resultsText}>
-                {searchResults.length} results found
-              </Text>
-            )}
-          </View>
-        </View>
-      </Modal>
-
       <UserFooter />
     </View>
   );
@@ -283,26 +246,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  header: {
-    height: 120,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    elevation: 5,
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 10,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-    fontFamily: 'Poppins',
+  headerSpacer: {
+    height: 130,
   },
   body: {
     paddingBottom: 100,
@@ -319,6 +264,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 10,
     marginBottom: 20,
+    marginTop: 30,
   },
   filterButton: {
     paddingHorizontal: 15,
@@ -340,52 +286,39 @@ const styles = StyleSheet.create({
   filterTextActive: {
     color: 'white',
   },
-  headerSpacer: {
-    height: 140,
-  },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  searchContainer: {
-    backgroundColor: Colors.background,
-    paddingTop: 50,
-    paddingHorizontal: 20,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  searchHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  searchInput: {
-    flex: 1,
-    height: 40,
-    backgroundColor: 'white',
-    borderRadius: 20,
-    paddingHorizontal: 15,
-    marginRight: 10,
-    fontSize: 16,
-  },
-  closeButton: {
-    padding: 5,
-  },
-  resultsText: {
-    color: Colors.placeholder,
-    marginBottom: 10,
-    fontSize: 14,
-  },
   pastEvent: {
     opacity: 0.5,
     backgroundColor: '#f5f5f5',
   },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 20,
+    marginHorizontal: 10,
+    marginBottom: 20,
+    padding: 5,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  searchInput: {
+    flex: 1,
+    height: 40,
+    paddingHorizontal: 15,
+    fontSize: 16,
+    color: Colors.text,
+  },
+  searchButton: {
+    padding: 8,
+    backgroundColor: Colors.primary,
+    borderRadius: 20,
+  },
 });
 
 export default Home;
-

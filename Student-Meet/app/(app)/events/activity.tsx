@@ -284,10 +284,11 @@ export default function EventDetailsScreen() {
 
   return (
     <View style={styles.container}>
+      
+      <ScrollView style={styles.content}>
       <TouchableOpacity onPress={handleBack}>
         <Ionicons name="arrow-back" size={24} color="black" />
       </TouchableOpacity>
-      <ScrollView style={styles.content}>
         <Text style={styles.title}>{event.Event_Title}</Text>
         
         <View style={styles.infoSection}>
@@ -439,6 +440,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+    marginTop: 40,
   },
   content: {
     flex: 1,
@@ -449,6 +451,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 20,
     color: Colors.text,
+    marginTop: 20,
   },
   infoSection: {
     backgroundColor: 'white',

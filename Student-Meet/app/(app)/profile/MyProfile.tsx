@@ -72,7 +72,7 @@ export default function MyProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <Header title="Profile" showSearch={false} />
+      <Header title="Profile"  />
       <TouchableOpacity 
         style={styles.editButton}
         onPress={() => router.push('/profile/MyProfile_edit')}
@@ -111,6 +111,23 @@ export default function MyProfileScreen() {
               <Text style={styles.infoText}>
                 {user?.Description || 'No description added'}
               </Text>
+              
+              {(userData?.Discord_name || userData?.Steam_name) && (
+                <View style={styles.gamingProfiles}>
+                  {userData?.Discord_name && (
+                    <View style={styles.profileRow}>
+                      <Text style={styles.profileLabel}>Discord:</Text>
+                      <Text style={styles.profileValue}>{userData.Discord_name}</Text>
+                    </View>
+                  )}
+                  {userData?.Steam_name && (
+                    <View style={styles.profileRow}>
+                      <Text style={styles.profileLabel}>Steam:</Text>
+                      <Text style={styles.profileValue}>{userData.Steam_name}</Text>
+                    </View>
+                  )}
+                </View>
+              )}
             </View>
 
             <View style={styles.infoSection}>
@@ -262,5 +279,26 @@ const styles = StyleSheet.create({
     top: 45,
     padding: 8,
     zIndex: 2000,
+  },
+  gamingProfiles: {
+    marginTop: 15,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  profileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  profileLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: Colors.text,
+    marginRight: 8,
+  },
+  profileValue: {
+    fontSize: 16,
+    color: Colors.text,
   },
 });

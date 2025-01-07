@@ -8,9 +8,11 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/firebase';
 import Colors from '../../../constants/Colors';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { UserData } from '@/app/types/user';
 
 export default function MyProfileEditScreen() {
-  const { user } = useContext(AuthContext);
+  const { user, signIn } = useContext(AuthContext);
   const router = useRouter();
   const [userData, setUserData] = useState<any>({
     First_Name: '',
@@ -20,6 +22,9 @@ export default function MyProfileEditScreen() {
     Date_Of_Birth: '',
     Gender: '',
     Region: '',
+    Description: '',
+    Steam_name: '',
+    Discord_name: '',
   });
   const [userID, setUserID] = useState<string>(''); // State to store userID
 
@@ -52,21 +57,37 @@ export default function MyProfileEditScreen() {
 
   // Handle save button press and update Firestore document using User_ID
   const handleSave = async () => {
-    console.log('handleSave called');
     if (!userID) {
       console.error('User ID is undefined.');
       return;
     }
 
-    // Update Firestore document using the User_ID as the document reference
-    const userRef = doc(db, 'Users', userID); // Use userID instead of email
+    const updateFields = {
+      First_Name: userData.First_Name,
+      Second_name: userData.Second_name,
+      Description: userData.Description,
+      Department: userData.Department,
+      Date_Of_Birth: userData.Date_Of_Birth,
+      Gender: userData.Gender,
+      Region: userData.Region,
+      Steam_name: userData.Steam_name,
+      Discord_name: userData.Discord_name,
+    };
+
+    const userRef = doc(db, 'Users', userID);
     try {
-      await updateDoc(userRef, {
-        ...userData,
-      });
-      console.log('User data updated successfully');
+      await updateDoc(userRef, updateFields);
+      
+      // Update AsyncStorage with new data
+      const updatedUserData = { ...userData, ...updateFields };
+      await AsyncStorage.setItem('userData', JSON.stringify(updatedUserData));
+      
+      // Update AuthContext
+      signIn(updatedUserData as UserData);
+      
+      console.log('Updated fields:', updateFields);
       Alert.alert('Success', 'Profile updated successfully.');
-      router.back(); // Go back to previous page after successful update
+      router.back();
     } catch (error) {
       console.error('Error updating Firestore document:', error);
       Alert.alert('Error', 'Failed to update profile. Please try again.');
@@ -132,6 +153,31 @@ export default function MyProfileEditScreen() {
               value={userData.Region}
               onChangeText={(text: string) => setUserData({ ...userData, Region: text })}
             />
+            <View style={styles.descriptionSection}>
+              <Text style={styles.sectionTitle}>About Me</Text>
+              <EditableField
+                label="Description"
+                value={userData.Description}
+                onChangeText={(text: string) => setUserData({ ...userData, Description: text })}
+                multiline={true}
+                numberOfLines={4}
+                placeholder="Tell something about yourself..."
+              />
+              
+              <Text style={styles.sectionTitle}>Gaming Profiles</Text>
+              <EditableField
+                label="Steam Username"
+                value={userData.Steam_name}
+                onChangeText={(text: string) => setUserData({ ...userData, Steam_name: text })}
+                placeholder="Your Steam username"
+              />
+              <EditableField
+                label="Discord Username"
+                value={userData.Discord_name}
+                onChangeText={(text: string) => setUserData({ ...userData, Discord_name: text })}
+                placeholder="Your Discord username"
+              />
+            </View>
           </View>
         </View>
       </ScrollView>
@@ -141,14 +187,29 @@ export default function MyProfileEditScreen() {
 }
 
 // Editable Field Component
-const EditableField = ({ label, value, onChangeText, editable = true }: any) => (
+const EditableField = ({ 
+  label, 
+  value, 
+  onChangeText, 
+  editable = true, 
+  multiline = false,
+  numberOfLines = 1,
+  placeholder = ""
+}: any) => (
   <View style={styles.infoRow}>
     <Text style={styles.infoLabel}>{label}</Text>
     <TextInput
-      style={styles.textInput}
+      style={[
+        styles.textInput,
+        multiline && styles.multilineInput
+      ]}
       value={value}
       onChangeText={onChangeText}
       editable={editable}
+      multiline={multiline}
+      numberOfLines={numberOfLines}
+      placeholder={placeholder}
+      placeholderTextColor={Colors.placeholder}
     />
   </View>
 );
@@ -231,5 +292,28 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 60,
     left: 30,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: Colors.text,
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  descriptionSection: {
+    marginTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    paddingTop: 20,
+  },
+  multilineInput: {
+    height: 100,
+    textAlignVertical: 'top',
+    paddingTop: 10,
+    backgroundColor: Colors.inputBackground,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.inputBorder,
+    padding: 10,
   },
 });
