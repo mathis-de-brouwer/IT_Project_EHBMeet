@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, ActivityIndicator, ScrollView } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { View, Text, StyleSheet, Image, ActivityIndicator, ScrollView, TouchableOpacity } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { getUserById } from '../../../utils/userUtils';
 import Colors from '../../../constants/Colors';
 import { UserData } from '../../types/user';
 import { useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import Header from '@/components/header';
 import { db } from '@/firebase';
 
@@ -13,6 +14,7 @@ export default function ProfileInfoScreen() {
   const { userId } = useLocalSearchParams();
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useFocusEffect(
     useCallback(() => {
@@ -48,8 +50,14 @@ export default function ProfileInfoScreen() {
 
   return (
     <View style={styles.container}>
+      
+     
       <Header title="Profile" showSearch={false} />
       <ScrollView style={styles.scrollView}>
+      <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+        <Ionicons name="arrow-back" size={24} color={Colors.text} />
+      </TouchableOpacity>
+
         <View style={styles.profileContainer}>
           <View style={styles.avatarContainer}>
             <Image
@@ -134,6 +142,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  backButton: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    zIndex: 10,
+   
   },
   scrollView: {
     flex: 1,
