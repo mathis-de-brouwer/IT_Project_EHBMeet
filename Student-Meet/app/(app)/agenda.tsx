@@ -9,6 +9,7 @@ import { AuthContext } from '../../app/_layout';
 import EventCard from '../../components/EventCard';
 import { EventData } from '../types/event';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 
 const filterAndSortEvents = (eventsData: EventData[], userId: string, selectedFilter: string) => {
   const now = new Date();
@@ -26,8 +27,8 @@ const filterAndSortEvents = (eventsData: EventData[], userId: string, selectedFi
       if (selectedFilter === 'attendEvent') {
         return isAttending;
       }
-      // "All" includes both created and attending events
-      return eventDate >= twentyFourHoursAgo && (isOwnEvent || isAttending);
+      // For "All" filter, show both created and attending events without the 24h filter
+      return isOwnEvent || isAttending;
     })
     .sort((a, b) => {
       const dateA = new Date(a.Date);
@@ -41,6 +42,7 @@ const Agenda = () => {
   const { user } = useContext(AuthContext);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
+  const router = useRouter();
 
   useEffect(() => {
     if (!user) return;
@@ -106,7 +108,7 @@ const Agenda = () => {
         <Text style={styles.title}>Agenda</Text>
         <TouchableOpacity
           style={styles.notificationButton}
-          onPress={() => alert('No new notifications')}
+          onPress={() => router.push('/profile/notifications')}
         >
           <FontAwesome name="bell" size={30} color="white" />
         </TouchableOpacity>
@@ -200,8 +202,8 @@ const styles = StyleSheet.create({
   },
   notificationButton: {
     position: 'absolute',
-    top: 20,
-    right: 10,
+    top: 60,
+    right: 30,
     padding: 10,
   },
   pastEvent: {
@@ -219,6 +221,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 20,
     backgroundColor: '#f0f0f0',
+    borderWidth: 1,
+    borderColor: '#ddd',
   },
   filterButtonActive: {
     backgroundColor: Colors.primary,

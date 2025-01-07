@@ -219,16 +219,7 @@ const EventCard = ({ event, style, isAdmin, onEventUpdate }: EventCardProps) => 
             <View style={styles.buttonContainer}>
               <TouchableOpacity 
                 style={styles.editButton}
-                onPress={(e) => {
-                  e.stopPropagation();
-                  router.push({
-                    pathname: '/events/activity_add',
-                    params: { 
-                      eventId: event.id,
-                      isEditing: '1'
-                    }
-                  });
-                }}
+                onPress={handleEdit}
               >
                 <Text style={styles.buttonText}>Edit</Text>
               </TouchableOpacity>
@@ -249,18 +240,19 @@ const EventCard = ({ event, style, isAdmin, onEventUpdate }: EventCardProps) => 
                 <View style={styles.buttonContainer}>
                   <TouchableOpacity 
                     style={styles.editButton}
-                    onPress={(e) => {
-                      e.stopPropagation();
-                      router.push({
-                        pathname: '/events/activity_add',
-                        params: { 
-                          eventId: event.id,
-                          isEditing: '1'
-                        }
-                      });
-                    }}
+                    onPress={handleEdit}
                   >
                     <Text style={styles.buttonText}>Edit</Text>
+                  </TouchableOpacity>
+                  
+                  <TouchableOpacity 
+                    style={styles.deleteButton}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleDeleteEvent();
+                    }}
+                  >
+                    <Text style={styles.buttonText}>Delete</Text>
                   </TouchableOpacity>
                 </View>
               ) : (

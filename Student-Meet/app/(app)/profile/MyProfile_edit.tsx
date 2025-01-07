@@ -62,35 +62,43 @@ export default function MyProfileEditScreen() {
       return;
     }
 
-    const updateFields = {
-      First_Name: userData.First_Name,
-      Second_name: userData.Second_name,
-      Description: userData.Description,
-      Department: userData.Department,
-      Date_Of_Birth: userData.Date_Of_Birth,
-      Gender: userData.Gender,
-      Region: userData.Region,
-      Steam_name: userData.Steam_name,
-      Discord_name: userData.Discord_name,
-    };
-
-    const userRef = doc(db, 'Users', userID);
     try {
-      await updateDoc(userRef, updateFields);
+      const userRef = doc(db, 'Users', userID);
+      
+      // Create an update object only with defined values
+      const updateData = {
+        First_Name: userData.First_Name || user?.First_Name,
+        Second_name: userData.Second_name || user?.Second_name,
+        Description: userData.Description || null,  // Use null instead of undefined
+        Department: userData.Department || null,
+        Date_Of_Birth: userData.Date_Of_Birth || null,
+        Gender: userData.Gender || null,
+        Region: userData.Region || null,
+        Discord_name: userData.Discord_name || null,  // Use null instead of undefined
+        Steam_name: userData.Steam_name || null
+      };
+
+      // Remove any null values from the update object
+      Object.keys(updateData).forEach(key => 
+        updateData[key] === null && delete updateData[key]
+      );
+
+      await updateDoc(userRef, updateData);
       
       // Update AsyncStorage with new data
-      const updatedUserData = { ...userData, ...updateFields };
+      const updatedUserData = { ...userData, ...updateData };
       await AsyncStorage.setItem('userData', JSON.stringify(updatedUserData));
       
       // Update AuthContext
       signIn(updatedUserData as UserData);
       
-      console.log('Updated fields:', updateFields);
-      Alert.alert('Success', 'Profile updated successfully.');
-      router.back();
+      console.log('Updated fields:', updateData);
+      Alert.alert('Success', 'Profile updated successfully', [
+        { text: 'OK', onPress: () => router.back() }
+      ]);
     } catch (error) {
-      console.error('Error updating Firestore document:', error);
-      Alert.alert('Error', 'Failed to update profile. Please try again.');
+      console.error('Error updating profile:', error);
+      Alert.alert('Error', 'Failed to update profile');
     }
   };
 

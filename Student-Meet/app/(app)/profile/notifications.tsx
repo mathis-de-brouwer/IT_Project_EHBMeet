@@ -46,12 +46,10 @@ export default function NotificationsScreen() {
     if (!notification.eventId) return;
 
     try {
-      // First update the read status
       await updateDoc(doc(db, 'Notifications', notification.id), {
         read: true
       });
 
-      // Check if the event still exists before navigating
       const eventRef = doc(db, 'Event', notification.eventId);
       const eventDoc = await getDoc(eventRef);
 
@@ -60,8 +58,12 @@ export default function NotificationsScreen() {
         return;
       }
 
-      // If event exists, navigate to it
-      router.push(`/events/activity?eventId=${notification.eventId}&fromNotifications=true`);
+      router.replace({
+        pathname: '/events/activity',
+        params: { 
+          eventId: notification.eventId
+        }
+      });
       
     } catch (error) {
       console.error('Error handling notification:', error);

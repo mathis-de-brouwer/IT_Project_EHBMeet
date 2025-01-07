@@ -3,8 +3,8 @@ export type NotificationType =
   | 'leave_event' 
   | 'event_cancelled' 
   | 'event_edited'
-  | 'admin_event_edit'    // New type for admin edits
-  | 'admin_profile_edit'; // New type for profile edits
+  | 'admin_event_edit'    
+  | 'admin_profile_edit'; 
 
 export interface Notification {
   id: string;
@@ -15,7 +15,7 @@ export interface Notification {
   userName?: string;
   createdAt: string;
   read: boolean;
-  adminReason?: string;  // New field for admin edit reason
+  adminReason?: string;  
 }
 
 // Add default export

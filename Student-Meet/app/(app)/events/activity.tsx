@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { doc, updateDoc, arrayUnion, getDoc, deleteDoc, addDoc, collection } from 'firebase/firestore';
-import { db } from '../../../firebase';
+import { db } from '@/firebase';
 import { EventData } from '../../types/event';
 import { AuthContext } from '../../_layout';
 import UserFooter from '../../../components/footer';
@@ -96,7 +96,15 @@ export default function EventDetailsScreen() {
       Alert.alert('Success', 'You have successfully joined the event!', [
         { 
           text: 'OK', 
-          onPress: () => returnTo === 'agenda' ? router.push('/(app)/agenda') : router.push('/(app)/home')
+          onPress: () => {
+            if (returnTo === 'notifications') {
+              router.push('/profile/notifications');
+            } else if (returnTo === 'agenda') {
+              router.push('/(app)/agenda');
+            } else {
+              router.push('/(app)/home');
+            }
+          }
         }
       ]);
 
@@ -149,7 +157,15 @@ export default function EventDetailsScreen() {
       Alert.alert('Success', 'You have left the event', [
         {
           text: 'OK',
-          onPress: () => returnTo === 'agenda' ? router.push('/(app)/agenda') : router.push('/(app)/home')
+          onPress: () => {
+            if (returnTo === 'notifications') {
+              router.push('/profile/notifications');
+            } else if (returnTo === 'agenda') {
+              router.push('/(app)/agenda');
+            } else {
+              router.push('/(app)/home');
+            }
+          }
         }
       ]);
 
@@ -174,13 +190,7 @@ export default function EventDetailsScreen() {
   };
 
   const handleBack = () => {
-    if (returnTo === 'agenda') {
-      router.push('/(app)/agenda');
-    } else if (returnTo === 'admin') {
-      router.push('/(app)/(admin)/events');
-    } else {
-      router.push('/(app)/home');
-    }
+    router.back();
   };
 
   const handleDeleteEvent = async () => {
@@ -261,7 +271,13 @@ export default function EventDetailsScreen() {
               Alert.alert('Success', 'Event deleted successfully', [
                 {
                   text: 'OK',
-                  onPress: () => returnTo === 'agenda' ? router.push('/(app)/agenda') : router.push('/(app)/home')
+                  onPress: () => {
+                    if (returnTo === 'agenda') {
+                      router.push('/(app)/agenda');
+                    } else {
+                      router.push('/(app)/home');
+                    }
+                  }
                 }
               ]);
             } catch (error) {
@@ -284,11 +300,13 @@ export default function EventDetailsScreen() {
 
   return (
     <View style={styles.container}>
-      
-      <ScrollView style={styles.content}>
-      <TouchableOpacity onPress={handleBack}>
-        <Ionicons name="arrow-back" size={24} color="black" />
+      <TouchableOpacity 
+        style={styles.backButton} 
+        onPress={handleBack}
+      >
+        <Ionicons name="arrow-back" size={24} color={Colors.text} />
       </TouchableOpacity>
+      <ScrollView style={styles.content}>
         <Text style={styles.title}>{event.Event_Title}</Text>
         
         <View style={styles.infoSection}>
@@ -440,7 +458,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
-    marginTop: 40,
   },
   content: {
     flex: 1,
@@ -451,7 +468,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 20,
     color: Colors.text,
-    marginTop: 20,
   },
   infoSection: {
     backgroundColor: 'white',
