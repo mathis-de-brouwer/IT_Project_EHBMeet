@@ -6,7 +6,7 @@ import Colors from '../../../constants/Colors';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { FontAwesome, FontAwesome5 } from '@expo/vector-icons';
+import { FontAwesome } from '@expo/vector-icons';
 import { UserData } from '../../types/user';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/firebase';
@@ -59,10 +59,6 @@ export default function MyProfileScreen() {
           if (userSnap.exists()) {
             const data = userSnap.data() as UserData;
             setUserData(data);
-            
-            if (JSON.stringify(data) !== JSON.stringify(user)) {
-              await updateDoc(userRef, data as any);
-            }
           }
         } catch (error) {
           console.error('Error fetching user data:', error);
@@ -81,7 +77,7 @@ export default function MyProfileScreen() {
         style={styles.editButton}
         onPress={() => router.push('/profile/MyProfile_edit')}
       >
-        <Ionicons name="create-outline" size={24} color={Colors.primary} />
+        <Ionicons name="create-outline" size={35} color="white" />
       </TouchableOpacity>
       
       <ScrollView style={[styles.scrollViewContent, { marginTop: 150 }]}>
@@ -145,7 +141,6 @@ export default function MyProfileScreen() {
   );
 }
 
-// Component for Rows
 interface ProfileRowProps {
   icon: string;
   label: string;
@@ -192,7 +187,7 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   infoItem: {
-    marginBottom: 15,
+    marginBottom: 10,
     alignItems: 'center',
   },
   infoSection: {
@@ -200,13 +195,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     borderRadius: 15,
     padding: 25,
-    marginTop: 20,
+    marginTop: 0,
     elevation: 3,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 15,
   },
   infoTextContainer: {
     marginLeft: 20,
@@ -221,13 +216,6 @@ const styles = StyleSheet.create({
   infoText: {
     fontSize: 16,
     color: Colors.text,
-  },
-  notificationsButton: {
-    backgroundColor: Colors.secondary,
-    padding: 15,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginBottom: 20,
   },
   editButtonText: {
     color: 'white',
@@ -258,11 +246,11 @@ const styles = StyleSheet.create({
   },
   profileImageContainer: {
     alignItems: 'center',
-    marginTop: -50,  // Overlaps header
+    marginTop: -35,
   },
   profileImage: {
-    width: 130,
-    height: 130,
+    width: 120,
+    height: 120,
     borderRadius: 65,
     borderWidth: 3,
     borderColor: 'white',
@@ -270,19 +258,9 @@ const styles = StyleSheet.create({
   },
   editButton: {
     position: 'absolute',
-    left: 20,
+    right: 20,
     top: 45,
     padding: 8,
-    borderRadius: 8,
-    backgroundColor: 'white',
     zIndex: 2000,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
   },
 });

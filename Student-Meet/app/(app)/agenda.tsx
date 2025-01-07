@@ -1,225 +1,164 @@
-import * as React from 'react';
-import { useEffect, useState, useContext } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, ActivityIndicator, TouchableOpacity } from 'react-native';
-import { db } from '@/firebase'; 
-import { collection, query, where, getDocs, doc, deleteDoc, getDoc, updateDoc } from 'firebase/firestore';
-import { AuthContext } from '../_layout';
-import Header from '../../components/header';
-import UserFooter from '../../components/footer'; 
+import React, { useEffect, useState, useContext } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl } from 'react-native';
+import { FontAwesome } from '@expo/vector-icons';
+import UserFooter from '../../components/footer';
 import Colors from '../../constants/Colors';
+import { db } from '@/firebase';
+import { collection, getDocs, onSnapshot } from 'firebase/firestore';
+import { AuthContext } from '../../app/_layout';
+import EventCard from '../../components/EventCard';
 import { EventData } from '../types/event';
-import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 
+const filterAndSortEvents = (eventsData: EventData[], userId: string, selectedFilter: string) => {
+  const now = new Date();
+  const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+  return eventsData
+    .filter(event => {
+      const eventDate = new Date(event.Date);
+      const isOwnEvent = event.User_ID === userId;
+      const isAttending = event.participants?.includes(userId);
+
+      if (selectedFilter === 'myEvent') {
+        return isOwnEvent;
+      }
+      if (selectedFilter === 'attendEvent') {
+        return isAttending;
+      }
+      // "All" includes both created and attending events
+      return eventDate >= twentyFourHoursAgo && (isOwnEvent || isAttending);
+    })
+    .sort((a, b) => {
+      const dateA = new Date(a.Date);
+      const dateB = new Date(b.Date);
+      return dateA.getTime() - dateB.getTime();
+    });
+};
 
 const Agenda = () => {
+  const [events, setEvents] = useState<EventData[]>([]);
   const { user } = useContext(AuthContext);
-  const router = useRouter();
-  const [eventsCreated, setEventsCreated] = useState<EventData[]>([]);
-  const [eventsParticipating, setEventsParticipating] = useState<EventData[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedFilter, setSelectedFilter] = useState<string>('all');
 
   useEffect(() => {
-    if (!user?.User_ID) return;
-    fetchEvents();
-  }, [user]);
-
-  const fetchEvents = async () => {
-    try {
-      setLoading(true);
-
-      // Fetch created events
-      const createdEventsQuery = query(
-        collection(db, 'Event'),
-        where('User_ID', '==', user?.User_ID)
-      );
-      const createdEventsSnapshot = await getDocs(createdEventsQuery);
-      const createdEvents = createdEventsSnapshot.docs.map(doc => ({
+    if (!user) return;
+    const eventsRef = collection(db, "Event");
+    const unsubscribe = onSnapshot(eventsRef, (snapshot) => {
+      const eventsData = snapshot.docs.map(doc => ({
+        ...doc.data(),
         id: doc.id,
-        ...doc.data()
+        participants: doc.data().participants || []
       } as EventData));
 
-      // Fetch participating events
-      const participatingEventsQuery = query(
-        collection(db, 'Event'),
-        where('participants', 'array-contains', user?.User_ID)
-      );
-      const participatingEventsSnapshot = await getDocs(participatingEventsQuery);
-      const participatingEvents = participatingEventsSnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as EventData));
-
-      setEventsCreated(createdEvents);
-      setEventsParticipating(participatingEvents);
-
-    } catch (error) {
-      console.error('Error fetching events:', error);
-      Alert.alert('Error', 'Unable to load events. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleEventPress = (event: EventData) => {
-    router.push({
-      pathname: '/events/activity',
-      params: { 
-        eventId: event.id,
-        isCreator: event.User_ID === user?.User_ID ? '1' : '0',
-        returnTo: 'agenda'
-      }
+      const filteredAndSortedEvents = filterAndSortEvents(eventsData, user.User_ID, selectedFilter);
+      setEvents(filteredAndSortedEvents);
+    }, (error) => {
+      console.error("Error listening to events: ", error);
     });
-  };
 
-  const handleDeleteEvent = async (eventId: string | undefined, e?: any) => {
-    if (!eventId) return;
-    if (e) {
-      e.stopPropagation();
-    }
-    
-    Alert.alert(
-      'Delete Event',
-      'Are you sure you want to delete this event?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel'
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setLoading(true);
-              await deleteDoc(doc(db, 'Event', eventId));
-              Alert.alert('Success', 'Event deleted successfully');
-              fetchEvents();
-            } catch (error) {
-              console.error('Error deleting event:', error);
-              Alert.alert('Error', 'Failed to delete event. Please try again.');
-            } finally {
-              setLoading(false);
-            }
-          }
-        }
-      ]
+    return () => unsubscribe();
+  }, [user, selectedFilter]);
+
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    if (!user) return;
+
+    const fetchEvents = async () => {
+      const eventsRef = collection(db, "Event");
+      const snapshot = await getDocs(eventsRef);
+      const eventsData = snapshot.docs.map(doc => ({
+        ...doc.data(),
+        id: doc.id,
+        participants: doc.data().participants || []
+      } as EventData));
+
+      const filteredAndSortedEvents = filterAndSortEvents(eventsData, user.User_ID, selectedFilter);
+      setEvents(filteredAndSortedEvents);
+      setRefreshing(false);
+    };
+
+    fetchEvents();
+  }, [user, selectedFilter]);
+
+  const renderEventCard = (event: EventData) => {
+    const eventDate = new Date(event.Date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const isPastEvent = eventDate < today;
+
+    return (
+      <EventCard 
+        key={event.id} 
+        event={event} 
+        style={isPastEvent ? styles.pastEvent : undefined}
+      />
     );
   };
 
-  const handleLeaveEvent = async (eventId: string | undefined) => {
-    if (!eventId) return;
-    try {
-      const eventRef = doc(db, 'Event', eventId);
-      const eventDoc = await getDoc(eventRef);
-      const currentEvent = eventDoc.data();
-
-      if (!currentEvent?.participants?.includes(user?.User_ID)) {
-        Alert.alert('Error', 'You are not part of this event');
-        return;
-      }
-
-      const newParticipants = currentEvent.participants.filter((id: string) => id !== user?.User_ID);
-      await updateDoc(eventRef, {
-        participants: newParticipants
-      });
-
-      Alert.alert('Success', 'You have left the event');
-      fetchEvents(); // Refresh the list
-    } catch (error) {
-      console.error('Error leaving event:', error);
-      Alert.alert('Error', 'Failed to leave event. Please try again.');
-    }
-  };
-
-  const handleEditEvent = (event: EventData) => {
-    router.push({
-      pathname: '/events/activity_add',
-      params: { 
-        eventId: event.id,
-        isEditing: '1'
-      }
-    });
-  };
-
-  const renderEventCard = (event: EventData, isCreated: boolean) => (
-    <TouchableOpacity 
-      key={event.id} 
-      style={styles.eventCard}
-      onPress={() => handleEventPress(event)}
-      activeOpacity={0.7}
-    >
-      <View>
-        <Text style={styles.eventTitle}>{event.Event_Title}</Text>
-        <Text style={styles.eventDate}>📅 {event.Date}</Text>
-        <Text style={styles.eventLocation}>📍 {event.Location}</Text>
-        <View style={styles.cardFooter}>
-          <Text style={styles.participants}>
-            👥 {event.participants?.length || 0}/{event.Max_Participants}
-          </Text>
-          {isCreated ? (
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity 
-                onPress={() => handleEditEvent(event)}
-                style={styles.editButton}
-              >
-                <Text style={styles.buttonText}>Edit</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                onPress={(e) => handleDeleteEvent(event.id, e)}
-                style={styles.deleteButton}
-              >
-                <Text style={styles.deleteButtonText}>Delete</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <TouchableOpacity 
-              onPress={() => handleLeaveEvent(event.id)}
-              style={styles.leaveButton}
-            >
-              <Text style={styles.buttonText}>Leave</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
-
   return (
     <View style={styles.container}>
-      <View style={styles.headerContainer}>
-        <Header title="My Events" showSearch={true} />
+      <LinearGradient 
+        colors={['#44c9ea', 'white']} 
+        style={styles.header}
+      >
+        <Text style={styles.title}>Agenda</Text>
+        <TouchableOpacity
+          style={styles.notificationButton}
+          onPress={() => alert('No new notifications')}
+        >
+          <FontAwesome name="bell" size={30} color="white" />
+        </TouchableOpacity>
+      </LinearGradient>
+
+      {/* Filters */}
+      <View style={styles.filterContainer}>
+        <TouchableOpacity 
+          style={[
+            styles.filterButton, 
+            selectedFilter === 'all' && styles.filterButtonActive
+          ]}
+          onPress={() => setSelectedFilter('all')}
+        >
+          <Text style={styles.filterText}>All</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[
+            styles.filterButton, 
+            selectedFilter === 'myEvent' && styles.filterButtonActive
+          ]}
+          onPress={() => setSelectedFilter('myEvent')}
+        >
+          <Text style={styles.filterText}>My Event</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={[
+            styles.filterButton, 
+            selectedFilter === 'attendEvent' && styles.filterButtonActive
+          ]}
+          onPress={() => setSelectedFilter('attendEvent')}
+        >
+          <Text style={styles.filterText}>Attend Event</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView 
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={styles.body}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[Colors.primary]}
+            tintColor={Colors.primary}
+            progressViewOffset={100}
+          />
+        }
       >
-        {loading ? (
-          <ActivityIndicator size="large" color={Colors.primary} style={styles.loader} />
-        ) : (
-          <View style={styles.content}>
-            {eventsCreated.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Events I Created</Text>
-                {eventsCreated.map(event => renderEventCard(event, true))}
-              </View>
-            )}
-
-            {eventsParticipating.length > 0 && (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Events I'm Joining</Text>
-                {eventsParticipating.map(event => renderEventCard(event, false))}
-              </View>
-            )}
-
-            {eventsCreated.length === 0 && eventsParticipating.length === 0 && (
-              <Text style={styles.noEventsText}>
-                You haven't created or joined any events yet
-              </Text>
-            )}
-          </View>
-        )}
+        {events.map((event) => renderEventCard(event))}
       </ScrollView>
 
       <UserFooter />
@@ -232,114 +171,60 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  headerContainer: {
-    height: 150, // Match header height
+  header: {
+    height: 140,
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 30,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    elevation: 5,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
     zIndex: 10,
   },
-  scrollView: {
-    flex: 1,
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: 'black',
+    textAlign: 'center',
   },
-  scrollContent: {
-    paddingTop: 20, // Reduced from 120
+  body: {
+    paddingTop: 25,
     paddingBottom: 100,
     paddingHorizontal: 16,
   },
-  content: {
-    padding: 16,
+  notificationButton: {
+    position: 'absolute',
+    top: 20,
+    right: 10,
+    padding: 10,
   },
-  section: {
-    marginBottom: 24,
+  pastEvent: {
+    opacity: 0.5,
+    backgroundColor: '#f5f5f5',
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: Colors.text,
-    marginBottom: 12,
-  },
-  eventCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  eventTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: Colors.text,
-    marginBottom: 8,
-  },
-  eventDate: {
-    fontSize: 14,
-    color: Colors.secondary,
-    marginBottom: 4,
-  },
-  eventLocation: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
-  },
-  participantsContainer: {
+  filterContainer: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-around',
+    marginTop: 140,
+    paddingHorizontal: 16,
   },
-  participants: {
-    fontSize: 14,
-    color: '#666',
+  filterButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    borderRadius: 20,
   },
-  loader: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 20,
+  filterButtonActive: {
+    backgroundColor: Colors.primary,
   },
-  noEventsText: {
-    textAlign: 'center',
-    color: Colors.placeholder,
-    fontSize: 16,
-    marginTop: 20,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  deleteButton: {
-    backgroundColor: Colors.error,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15,
-  },
-  deleteButtonText: {
-    color: 'white',
-    fontSize: 12,
+  filterText: {
+    color: 'black',
     fontWeight: 'bold',
-  },
-  leaveButton: {
-    backgroundColor: Colors.secondary,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15,
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  editButton: {
-    backgroundColor: Colors.secondary,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 15,
   },
 });
 
