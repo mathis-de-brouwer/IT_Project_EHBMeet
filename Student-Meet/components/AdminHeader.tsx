@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, TextInput } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,10 +10,18 @@ interface AdminHeaderProps {
   title: string;
   children?: React.ReactNode;
   showSearch?: boolean;
+  onSearchPress?: () => void; // Add this line
 }
 
-const AdminHeader: React.FC<AdminHeaderProps> = ({ title, showSearch = false }) => {
+const AdminHeader: React.FC<AdminHeaderProps> = ({ title, showSearch = false, onSearchPress }) => {
   const router = useRouter();
+  const [showSearchModal, setShowSearchModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    // Implement search logic here
+  };
 
   return (
     <>
@@ -34,13 +42,46 @@ const AdminHeader: React.FC<AdminHeaderProps> = ({ title, showSearch = false }) 
           <Text style={styles.title}>{title}</Text>
           
           {showSearch && (
-            <TouchableOpacity style={styles.searchButton}>
+            <TouchableOpacity 
+              style={styles.searchButton}
+              onPress={onSearchPress} // Update this line
+            >
               <FontAwesome name="search" size={24} color="white" />
             </TouchableOpacity>
           )}
         </View>
       </LinearGradient>
       <View style={styles.contentSpacer} />
+
+      <Modal
+        visible={showSearchModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowSearchModal(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.searchContainer}>
+            <View style={styles.searchHeader}>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search events..."
+                value={searchQuery}
+                onChangeText={handleSearch}
+                autoFocus
+              />
+              <TouchableOpacity 
+                style={styles.closeButton}
+                onPress={() => {
+                  setShowSearchModal(false);
+                  setSearchQuery('');
+                }}
+              >
+                <FontAwesome name="times" size={24} color={Colors.text} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 };
@@ -78,9 +119,42 @@ const styles = StyleSheet.create({
     right: 20,
     top: 20,
   },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  searchContainer: {
+    backgroundColor: Colors.background,
+    paddingTop: 50,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  searchHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  searchInput: {
+    flex: 1,
+    height: 40,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    paddingHorizontal: 15,
+    marginRight: 10,
+    fontSize: 16,
+  },
+  closeButton: {
+    padding: 5,
+  },
   contentSpacer: {
     height: 150,
   },
 });
 
-export default AdminHeader; 
+export default AdminHeader;
