@@ -9,7 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { FontAwesome, FontAwesome5 } from '@expo/vector-icons';
 import { UserData } from '../../types/user';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../../../firebase';
+import { db } from '@/firebase';
 import Header from '../../../components/header';
 
 export default function MyProfileScreen() {

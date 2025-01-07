@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import Colors from '../../constants/Colors'; // Your color definitions
 import { useRouter } from 'expo-router';
-import { db, auth } from '../../firebase'; // Import the Firebase instance
+import { db, auth } from '@/firebase'; // Import the Firebase instance
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { getAuth } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';

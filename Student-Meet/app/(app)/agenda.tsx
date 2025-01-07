@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useEffect, useState, useContext } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, ActivityIndicator, TouchableOpacity } from 'react-native';
-import { db } from '../../firebase'; 
+import { db } from '@/firebase'; 
 import { collection, query, where, getDocs, doc, deleteDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { AuthContext } from '../_layout';
 import Header from '../../components/header';
@@ -9,6 +9,7 @@ import UserFooter from '../../components/footer';
 import Colors from '../../constants/Colors';
 import { EventData } from '../types/event';
 import { useRouter } from 'expo-router';
+
 
 const Agenda = () => {
   const { user } = useContext(AuthContext);

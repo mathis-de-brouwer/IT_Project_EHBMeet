@@ -6,7 +6,7 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
-import { db } from '../../../firebase';
+import { db } from '@/firebase';
 import Colors from '../../../constants/Colors';
 
 export default function MyProfileEditScreen() {

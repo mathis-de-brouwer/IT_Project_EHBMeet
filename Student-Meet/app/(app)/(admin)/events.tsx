@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { collection, getDocs, onSnapshot } from 'firebase/firestore';
-import { db } from '../../../firebase';
+import { db } from '@/firebase';
 import Colors from '../../../constants/Colors';
 import { EventData } from '../../../app/types/event';
 import EventCard from '../../../components/EventCard';
