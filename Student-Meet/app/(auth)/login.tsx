@@ -2,7 +2,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native'; // Remove Platform
 import Colors from '../../constants/Colors';
 import { useRouter } from 'expo-router';
-import { db, auth } from '../../firebase';
+import { db, auth } from '@/firebase';
 import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import CryptoJS from 'crypto-js';
 import { AuthContext } from '../_layout';

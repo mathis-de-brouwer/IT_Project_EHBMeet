@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
-import { db } from '../../../firebase';
+import { db } from '@/firebase';
 import Colors from '../../../constants/Colors';
 import { UserData, UserRole } from '../../../app/types/user';
 import AdminHeader from '../../../components/AdminHeader';

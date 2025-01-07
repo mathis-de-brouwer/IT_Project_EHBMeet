@@ -1,7 +1,7 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, Platform } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { db } from '../../../firebase';
+import { db } from '@/firebase';
 import { collection, addDoc, updateDoc, doc, getDoc } from 'firebase/firestore';
 import Colors from '../../../constants/Colors';
 import { AuthContext } from '../../_layout';
