@@ -92,7 +92,10 @@ export default function LoginScreen() {
       const userCredential = await signInWithEmailAndPassword(auth, emailLower, password);
       
       const userDoc = querySnapshot.docs[0];
-      const userData = userDoc.data();
+      const userData = {
+        ...userDoc.data(),
+        User_ID: userDoc.id  // Make sure to include the document ID
+      };
 
       // Ensure role exists (for backward compatibility)
       if (!userData.role) {
@@ -102,7 +105,7 @@ export default function LoginScreen() {
         userData.role = 'student';
       }
 
-      // Store user data and login time
+      // Store complete user data
       await AsyncStorage.setItem('userData', JSON.stringify(userData));
       await AsyncStorage.setItem('lastLoginTime', new Date().getTime().toString());
       

@@ -9,6 +9,7 @@ import { useCallback } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import Header from '@/components/header';
 import { db } from '@/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 export default function ProfileInfoScreen() {
   const { userId } = useLocalSearchParams();
@@ -16,18 +17,26 @@ export default function ProfileInfoScreen() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  const fetchUser = async () => {
+    if (!userId) return;
+    setLoading(true);
+    try {
+      const userRef = doc(db, 'Users', userId as string);
+      const userSnap = await getDoc(userRef);
+      if (userSnap.exists()) {
+        const userData = userSnap.data() as UserData;
+        console.log('Fetched user data:', userData);
+        setUser({ ...userData, User_ID: userSnap.id });
+      }
+    } catch (error) {
+      console.error('Error fetching user:', error);
+    }
+    setLoading(false);
+  };
+
+  // Use useFocusEffect to refresh data when screen is focused
   useFocusEffect(
     useCallback(() => {
-      const fetchUser = async () => {
-        if (!userId) return;
-        setLoading(true);
-        const userData = await getUserById(userId as string);
-        if (userData) {
-          setUser(userData as UserData);
-        }
-        setLoading(false);
-      };
-
       fetchUser();
     }, [userId])
   );
@@ -72,7 +81,26 @@ export default function ProfileInfoScreen() {
 
           <View style={styles.descriptionContainer}>
             <Text style={styles.sectionTitle}>Description</Text>
-            <Text style={styles.description}>{user.Description || 'No description added'}</Text>
+            <Text style={styles.description}>
+              {user.Description || 'No description added'}
+            </Text>
+            
+            {(user.Discord_name || user.Steam_name) && (
+              <View style={styles.gamingProfiles}>
+                {user.Discord_name && (
+                  <View style={styles.profileRow}>
+                    <Text style={styles.profileLabel}>Discord:</Text>
+                    <Text style={styles.profileValue}>{user.Discord_name}</Text>
+                  </View>
+                )}
+                {user.Steam_name && (
+                  <View style={styles.profileRow}>
+                    <Text style={styles.profileLabel}>Steam:</Text>
+                    <Text style={styles.profileValue}>{user.Steam_name}</Text>
+                  </View>
+                )}
+              </View>
+            )}
           </View>
 
           <View style={styles.detailsContainer}>
@@ -259,5 +287,26 @@ const styles = StyleSheet.create({
     color: Colors.error,
     textAlign: 'center',
     marginTop: 20,
+  },
+  gamingProfiles: {
+    marginTop: 15,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  profileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  profileLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: Colors.text,
+    marginRight: 8,
+  },
+  profileValue: {
+    fontSize: 16,
+    color: Colors.text,
   },
 });

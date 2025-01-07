@@ -115,6 +115,23 @@ export default function MyProfileScreen() {
               <Text style={styles.infoText}>
                 {user?.Description || 'No description added'}
               </Text>
+              
+              {(userData?.Discord_name || userData?.Steam_name) && (
+                <View style={styles.gamingProfiles}>
+                  {userData?.Discord_name && (
+                    <View style={styles.profileRow}>
+                      <Text style={styles.profileLabel}>Discord:</Text>
+                      <Text style={styles.profileValue}>{userData.Discord_name}</Text>
+                    </View>
+                  )}
+                  {userData?.Steam_name && (
+                    <View style={styles.profileRow}>
+                      <Text style={styles.profileLabel}>Steam:</Text>
+                      <Text style={styles.profileValue}>{userData.Steam_name}</Text>
+                    </View>
+                  )}
+                </View>
+              )}
             </View>
 
             <View style={styles.infoSection}>
@@ -284,5 +301,26 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+  },
+  gamingProfiles: {
+    marginTop: 15,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  profileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 5,
+  },
+  profileLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: Colors.text,
+    marginRight: 8,
+  },
+  profileValue: {
+    fontSize: 16,
+    color: Colors.text,
   },
 });
