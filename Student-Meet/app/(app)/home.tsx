@@ -235,44 +235,30 @@ const Home = () => {
           <FontAwesome name="search" size={24} color="white" />
         </TouchableOpacity>
       </LinearGradient>
-
-      <Modal
-        visible={showSearch}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowSearch(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.searchContainer}>
-            <View style={styles.searchHeader}>
-              <TextInput
-                style={styles.searchInput}
-                placeholder="Search events..."
-                value={searchQuery}
-                onChangeText={handleSearch}
-                autoFocus
-              />
-              <TouchableOpacity 
-                style={styles.closeButton}
-                onPress={() => {
-                  setShowSearch(false);
-                  setSearchQuery('');
-                  setSearchResults([]);
-                }}
-              >
-                <FontAwesome name="times" size={24} color={Colors.text} />
-              </TouchableOpacity>
-            </View>
-            
-            {searchQuery.length > 0 && (
-              <Text style={styles.resultsText}>
-                {searchResults.length} results found
-              </Text>
-            )}
+      {showSearch && (
+        <View style={styles.searchContainer}>
+          <View style={styles.searchHeader}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search events..."
+              value={searchQuery}
+              onChangeText={handleSearch}
+              autoFocus
+            />
+            <TouchableOpacity 
+              style={styles.closeButton}
+              onPress={() => setShowSearch(false)}
+            >
+              <FontAwesome name="times" size={24} color={Colors.text} />
+            </TouchableOpacity>
           </View>
+          {searchQuery.length > 0 && (
+            <Text style={styles.resultsText}>
+              {searchResults.length} results found
+            </Text>
+          )}
         </View>
-      </Modal>
-
+      )}
       <UserFooter />
     </View>
   );
@@ -343,21 +329,10 @@ const styles = StyleSheet.create({
   headerSpacer: {
     height: 140,
   },
-  modalContainer: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
   searchContainer: {
     backgroundColor: Colors.background,
-    paddingTop: 50,
     paddingHorizontal: 20,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    paddingVertical: 10,
   },
   searchHeader: {
     flexDirection: 'row',
